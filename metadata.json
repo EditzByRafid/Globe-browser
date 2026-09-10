@@ -1,0 +1,6 @@
+{
+  "name": "Globe Browser",
+  "description": "Fast, privacy-focused mobile web browser with Liquid Glass UI, Google Lens visual search, Firebase cloud sync, Google Search default, tabs, and low-end performance mode.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
