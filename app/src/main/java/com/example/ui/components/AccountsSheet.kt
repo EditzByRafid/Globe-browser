@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -22,7 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.BrowserSettings
 import com.example.model.UserAccountItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,20 +31,28 @@ fun AccountsSheet(
     settings: BrowserSettings,
     accounts: List<UserAccountItem>,
     onSwitchAccount: (Long) -> Unit,
+    onAddAccount: (UserAccountItem) -> Unit = {},
+    onDeleteAccount: (Long) -> Unit = {},
     onDismiss: () -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var newFullName by remember { mutableStateOf("") }
+    var newEmail by remember { mutableStateOf("") }
+    var newUsername by remember { mutableStateOf("") }
+    var newRole by remember { mutableStateOf("Personal") }
+    var selectedColorHex by remember { mutableStateOf("#1A73E8") }
 
     val filteredAccounts = remember(searchQuery, accounts) {
         if (searchQuery.isBlank()) {
-            accounts.take(60) // High performance windowing for low-end devices like Realme Note 60
+            accounts
         } else {
             accounts.filter {
                 it.fullName.contains(searchQuery, ignoreCase = true) ||
                 it.email.contains(searchQuery, ignoreCase = true) ||
                 it.username.contains(searchQuery, ignoreCase = true) ||
                 it.role.contains(searchQuery, ignoreCase = true)
-            }.take(60)
+            }
         }
     }
 
@@ -70,25 +79,37 @@ fun AccountsSheet(
                     Icon(
                         imageVector = Icons.Default.AccountCircle,
                         contentDescription = "Accounts",
-                        tint = GlobePalettes.ElectricCyan,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(26.dp)
                     )
                     Column {
                         Text(
-                            text = "Globe Accounts Directory",
+                            text = "Private Account Vault",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "${accounts.size} Accounts • 500 People in Database",
+                            text = "Storage: ${accounts.size} / 700 Accounts Capacity",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
-                IconButton(onClick = onDismiss) {
-                    Icon(Icons.Default.Close, contentDescription = "Close Accounts")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    FilledTonalButton(
+                        onClick = { showAddDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.testTag("add_account_btn")
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Add", fontSize = 12.sp)
+                    }
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Default.Close, contentDescription = "Close Accounts")
+                    }
                 }
             }
 
@@ -99,13 +120,8 @@ fun AccountsSheet(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
-                            shape = RoundedCornerShape(16.dp),
-                            borderColor = GlobePalettes.ElectricCyan
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                        .chromeCard(shape = RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
                 ) {
                     Row(
                         modifier = Modifier
@@ -114,16 +130,16 @@ fun AccountsSheet(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        val avatarBg = try { Color(android.graphics.Color.parseColor(currentAccount.avatarColorHex)) } catch (_: Exception) { GlobePalettes.ElectricCyan }
+                        val avatarBg = try { Color(android.graphics.Color.parseColor(currentAccount.avatarColorHex)) } catch (_: Exception) { Color(0xFF1A73E8) }
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(46.dp)
                                 .clip(CircleShape)
                                 .background(avatarBg),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = currentAccount.fullName.take(1),
+                                text = currentAccount.fullName.take(1).uppercase(),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -137,11 +153,10 @@ fun AccountsSheet(
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(
-                                    text = "ACTIVE",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = GlobePalettes.ElectricCyan,
-                                    fontWeight = FontWeight.Bold
+                                SuggestionChip(
+                                    onClick = {},
+                                    label = { Text("ACTIVE", fontSize = 9.sp, fontWeight = FontWeight.Bold) },
+                                    modifier = Modifier.height(22.dp)
                                 )
                             }
                             Text(
@@ -150,7 +165,7 @@ fun AccountsSheet(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "Role: ${currentAccount.role}",
+                                text = "Profile: ${currentAccount.role} • @${currentAccount.username}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -161,12 +176,12 @@ fun AccountsSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Search Bar across 700 accounts database
+            // Search Bar across private accounts
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search 700 accounts by name, role, email...", fontSize = 13.sp) },
+                placeholder = { Text("Search your accounts...", fontSize = 13.sp) },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 trailingIcon = if (searchQuery.isNotEmpty()) {
                     {
@@ -196,7 +211,7 @@ fun AccountsSheet(
                             .fillMaxWidth()
                             .clickable { onSwitchAccount(item.id) },
                         colors = CardDefaults.cardColors(
-                            containerColor = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                            containerColor = if (isCurrent) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                         ),
                         shape = RoundedCornerShape(12.dp)
                     ) {
@@ -207,7 +222,7 @@ fun AccountsSheet(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            val color = try { Color(android.graphics.Color.parseColor(item.avatarColorHex)) } catch (_: Exception) { GlobePalettes.ElectricCyan }
+                            val color = try { Color(android.graphics.Color.parseColor(item.avatarColorHex)) } catch (_: Exception) { Color(0xFF1A73E8) }
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
@@ -216,7 +231,7 @@ fun AccountsSheet(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
-                                    text = item.fullName.take(1),
+                                    text = item.fullName.take(1).uppercase(),
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White
@@ -239,7 +254,7 @@ fun AccountsSheet(
                                     overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
-                                    text = "${item.role} • ID: ${item.id}",
+                                    text = "${item.role} • @${item.username}",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -253,8 +268,15 @@ fun AccountsSheet(
                                     modifier = Modifier.size(20.dp)
                                 )
                             } else {
-                                TextButton(onClick = { onSwitchAccount(item.id) }) {
-                                    Text("Switch", fontSize = 12.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    TextButton(onClick = { onSwitchAccount(item.id) }) {
+                                        Text("Switch", fontSize = 12.sp)
+                                    }
+                                    if (accounts.size > 1) {
+                                        IconButton(onClick = { onDeleteAccount(item.id) }) {
+                                            Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -262,5 +284,83 @@ fun AccountsSheet(
                 }
             }
         }
+    }
+
+    // Add Account Dialog
+    if (showAddDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("Add Account to Vault", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = newFullName,
+                        onValueChange = { newFullName = it },
+                        label = { Text("Account / Full Name") },
+                        placeholder = { Text("e.g. Work Profile, Google Alt") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newEmail,
+                        onValueChange = { newEmail = it },
+                        label = { Text("Email Address") },
+                        placeholder = { Text("e.g. me@example.com") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newUsername,
+                        onValueChange = { newUsername = it },
+                        label = { Text("Username") },
+                        placeholder = { Text("e.g. user_work") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = newRole,
+                        onValueChange = { newRole = it },
+                        label = { Text("Profile Type / Role") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newFullName.isNotBlank() && newEmail.isNotBlank()) {
+                            onAddAccount(
+                                UserAccountItem(
+                                    id = 0,
+                                    username = newUsername.ifBlank { newFullName.lowercase().replace(" ", "_") },
+                                    email = newEmail.trim(),
+                                    fullName = newFullName.trim(),
+                                    avatarColorHex = selectedColorHex,
+                                    role = newRole.trim(),
+                                    isCurrent = false
+                                )
+                            )
+                            newFullName = ""
+                            newEmail = ""
+                            newUsername = ""
+                            showAddDialog = false
+                        }
+                    }
+                ) {
+                    Text("Save to Vault")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

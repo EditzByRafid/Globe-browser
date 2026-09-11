@@ -39,7 +39,7 @@ import com.example.ai.GeminiModel
 import com.example.model.BrowserSettings
 import com.example.model.TabItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -137,7 +137,7 @@ fun GeminiAiSheet(
                         selected = (selectedModel == model),
                         onClick = {
                             selectedModel = model
-                            highThinkingEnabled = (model == GeminiModel.PRO || model == GeminiModel.PRO_3_5)
+                            highThinkingEnabled = (model == GeminiModel.PRO)
                         },
                         label = {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -158,11 +158,10 @@ fun GeminiAiSheet(
                         leadingIcon = {
                             Icon(
                                 imageVector = when (model) {
-                                    GeminiModel.LITE -> Icons.Default.Speed
                                     GeminiModel.FLASH -> Icons.Default.Bolt
-                                    GeminiModel.PRO, GeminiModel.PRO_3_5 -> Icons.Default.Psychology
-                                    GeminiModel.FLASH_8, GeminiModel.FLASH_7 -> Icons.Default.AutoAwesome
-                                    else -> Icons.Default.Science
+                                    GeminiModel.PRO -> Icons.Default.Psychology
+                                    GeminiModel.FLASH_2 -> Icons.Default.Speed
+                                    GeminiModel.FLASH_1_5 -> Icons.Default.AutoAwesome
                                 },
                                 contentDescription = null,
                                 modifier = Modifier.size(14.dp)
@@ -255,18 +254,17 @@ fun GeminiAiSheet(
                         Card(
                             modifier = Modifier
                                 .widthIn(max = 310.dp)
-                                .liquidGlass(
-                                    enabled = settings.liquidGlassEnabled,
-                                    lowEndMode = settings.lowEndModeEnabled,
+                                .chromeCard(
                                     shape = RoundedCornerShape(
                                         topStart = 16.dp,
                                         topEnd = 16.dp,
                                         bottomStart = if (isUser) 16.dp else 4.dp,
                                         bottomEnd = if (isUser) 4.dp else 16.dp
-                                    ),
-                                    tintColor = if (isUser) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                    )
                                 ),
-                            colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isUser) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 if (msg.imageBitmap != null) {

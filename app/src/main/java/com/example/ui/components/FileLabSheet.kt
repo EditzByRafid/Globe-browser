@@ -32,7 +32,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.model.BrowserSettings
 import com.example.model.FileLabItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

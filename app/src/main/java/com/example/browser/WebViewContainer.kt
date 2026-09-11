@@ -128,10 +128,7 @@ fun WebViewContainer(
                         settings.useWideViewPort = true
                         settings.loadWithOverviewMode = true
 
-                        // Low-end optimization for devices like Realme Note 60
-                        if (browserSettings.lowEndModeEnabled) {
-                            settings.cacheMode = WebSettings.LOAD_DEFAULT
-                        }
+                        settings.cacheMode = WebSettings.LOAD_DEFAULT
 
                         if (browserSettings.desktopMode) {
                             settings.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 GlobeBrowser/1.0"

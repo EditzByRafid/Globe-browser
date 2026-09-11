@@ -35,7 +35,7 @@ import com.example.model.BrowserSettings
 import com.example.model.LensAnalysisResult
 import com.example.model.LensMode
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,9 +189,7 @@ fun GoogleLensSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(240.dp)
-                            .liquidGlass(
-                                enabled = settings.liquidGlassEnabled,
-                                lowEndMode = settings.lowEndModeEnabled,
+                            .chromeCard(
                                 shape = RoundedCornerShape(18.dp)
                             ),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
@@ -379,9 +377,7 @@ fun GoogleLensSheet(
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .liquidGlass(
-                                    enabled = settings.liquidGlassEnabled,
-                                    lowEndMode = settings.lowEndModeEnabled,
+                                .chromeCard(
                                     shape = RoundedCornerShape(16.dp)
                                 ),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))

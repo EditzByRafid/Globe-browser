@@ -32,7 +32,7 @@ import com.example.model.BrowserSettings
 import com.example.model.SearchEngine
 import com.example.model.TabItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @Composable
 fun OmniboxBar(
@@ -63,12 +63,10 @@ fun OmniboxBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .liquidGlass(
-                enabled = settings.liquidGlassEnabled,
-                lowEndMode = settings.lowEndModeEnabled,
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
-                elevation = 6.dp
+            .chromeCard(
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp)
             )
+            .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         // Linear loading progress bar
@@ -128,12 +126,7 @@ fun OmniboxBar(
                     .weight(1f)
                     .height(42.dp)
                     .clip(RoundedCornerShape(22.dp))
-                    .background(
-                        if (settings.liquidGlassEnabled && !settings.lowEndModeEnabled)
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                        else
-                            MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
                     .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.CenterStart
             ) {

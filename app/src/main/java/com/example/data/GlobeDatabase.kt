@@ -167,6 +167,12 @@ interface UserAccountDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccounts(accounts: List<UserAccountEntity>)
 
+    @Query("DELETE FROM accounts WHERE id = :id")
+    suspend fun deleteAccount(id: Long)
+
+    @Query("DELETE FROM accounts")
+    suspend fun deleteAllAccounts()
+
     @Query("UPDATE accounts SET isCurrent = 0")
     suspend fun clearCurrentAccount()
 

@@ -1,23 +1,24 @@
 package com.example.model
 
-enum class SearchEngine(val displayName: String, val searchUrl: String, val homeUrl: String) {
-    GOOGLE("Google", "https://www.google.com/search?q=", "https://www.google.com"),
-    DUCKDUCKGO("DuckDuckGo", "https://duckduckgo.com/?q=", "https://duckduckgo.com"),
-    BING("Bing", "https://www.bing.com/search?q=", "https://www.bing.com"),
-    BRAVE("Brave Search", "https://search.brave.com/search?q=", "https://search.brave.com");
+enum class SearchEngine(val displayName: String, val searchUrl: String, val homeUrl: String, val iconEmoji: String) {
+    GOOGLE("Google", "https://www.google.com/search?q=", "https://www.google.com", "🔍"),
+    BING("Bing", "https://www.bing.com/search?q=", "https://www.bing.com", "🟦"),
+    DUCKDUCKGO("DuckDuckGo", "https://duckduckgo.com/?q=", "https://duckduckgo.com", "🦆"),
+    YAHOO("Yahoo", "https://search.yahoo.com/search?q=", "https://search.yahoo.com", "🟣"),
+    ECOSIA("Ecosia", "https://www.ecosia.org/search?q=", "https://www.ecosia.org", "🌳"),
+    BRAVE("Brave Search", "https://search.brave.com/search?q=", "https://search.brave.com", "🦁"),
+    STARTPAGE("Startpage", "https://www.startpage.com/do/dsearch?query=", "https://www.startpage.com", "🛡️"),
+    YANDEX("Yandex", "https://yandex.com/search/?text=", "https://yandex.com", "🔴");
 
     fun getQueryUrl(query: String): String {
         return searchUrl + java.net.URLEncoder.encode(query, "UTF-8")
     }
 }
 
-enum class BrowserTheme(val label: String) {
-    ELECTRIC_BLUE("Electric Cyan (Globe)"),
-    CHROME_LIGHT("Google Chrome Light"),
-    CHROME_DARK("Google Chrome Dark"),
-    OPERA_GX("Opera GX Crimson"),
-    EMERALD_CYBER("Matrix Emerald"),
-    OLED_BLACK("OLED Pitch Black")
+enum class BrowserTheme(val label: String, val description: String) {
+    LIGHT("Light Mode", "Clean Google Chrome light styling"),
+    DARK("Dark Mode", "Google Chrome dark styling"),
+    MIDNIGHT("Midnight Mode", "OLED pitch black with high contrast")
 }
 
 enum class ToolbarPosition {
@@ -100,12 +101,11 @@ data class NewsItem(
 )
 
 data class BrowserSettings(
-    val liquidGlassEnabled: Boolean = true,
-    val lowEndModeEnabled: Boolean = false, // Optimized for Realme Note 60 & low-end devices
     val reduceMotion: Boolean = false,
-    val theme: BrowserTheme = BrowserTheme.ELECTRIC_BLUE,
-    val toolbarPosition: ToolbarPosition = ToolbarPosition.BOTTOM,
-    val searchEngine: SearchEngine = SearchEngine.GOOGLE,
+    val theme: BrowserTheme = BrowserTheme.DARK,
+    val toolbarPosition: ToolbarPosition = ToolbarPosition.TOP, // Default Chrome top bar
+    val searchEngine: SearchEngine = SearchEngine.GOOGLE, // Default Google
+    val enabledSearchEngines: List<String> = listOf("GOOGLE", "BING", "DUCKDUCKGO", "YAHOO", "ECOSIA", "BRAVE", "STARTPAGE", "YANDEX"),
     val homePageUrl: String = "https://www.google.com",
     val adBlockEnabled: Boolean = true,
     val trackerBlockEnabled: Boolean = true,

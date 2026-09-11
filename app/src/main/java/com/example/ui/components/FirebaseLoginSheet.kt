@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.example.auth.FirebaseUserState
 import com.example.model.BrowserSettings
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -173,9 +173,7 @@ fun FirebaseLoginSheet(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
+                        .chromeCard(
                             shape = RoundedCornerShape(18.dp)
                         ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
@@ -360,9 +358,7 @@ fun FirebaseLoginSheet(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
+                        .chromeCard(
                             shape = RoundedCornerShape(18.dp)
                         ),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))

@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.BrowserSettings
 import com.example.model.ExtensionItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -175,9 +175,7 @@ fun ExtensionsSheet(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .liquidGlass(
-                                enabled = settings.liquidGlassEnabled,
-                                lowEndMode = settings.lowEndModeEnabled,
+                            .chromeCard(
                                 shape = RoundedCornerShape(16.dp)
                             )
                             .clickable {
@@ -185,9 +183,9 @@ fun ExtensionsSheet(
                             },
                         colors = CardDefaults.cardColors(
                             containerColor = if (ext.isEnabled) {
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
                             } else {
-                                Color.Transparent
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
                             }
                         )
                     ) {

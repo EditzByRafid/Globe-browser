@@ -263,23 +263,41 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
-    fun toggleLiquidGlass() {
-        _settings.value = _settings.value.copy(
-            liquidGlassEnabled = !_settings.value.liquidGlassEnabled
-        )
+    fun setTheme(theme: BrowserTheme) {
+        _settings.value = _settings.value.copy(theme = theme)
     }
 
-    fun toggleLowEndMode() {
-        val newLowEnd = !_settings.value.lowEndModeEnabled
-        _settings.value = _settings.value.copy(
-            lowEndModeEnabled = newLowEnd,
-            liquidGlassEnabled = if (newLowEnd) false else _settings.value.liquidGlassEnabled,
-            reduceMotion = if (newLowEnd) true else _settings.value.reduceMotion
-        )
+    fun setSearchEngine(engine: SearchEngine) {
+        _settings.value = _settings.value.copy(searchEngine = engine)
+    }
+
+    fun toggleSearchEngine(engineKey: String) {
+        val currentList = _settings.value.enabledSearchEngines.toMutableList()
+        if (currentList.contains(engineKey)) {
+            // Cannot disable Google or if it's the only one left
+            if (engineKey != "GOOGLE" && currentList.size > 1) {
+                currentList.remove(engineKey)
+            }
+        } else {
+            currentList.add(engineKey)
+        }
+        _settings.value = _settings.value.copy(enabledSearchEngines = currentList)
     }
 
     fun updateSettings(newSettings: BrowserSettings) {
         _settings.value = newSettings
+    }
+
+    fun addAccount(account: UserAccountItem) {
+        viewModelScope.launch {
+            repository.addAccount(account)
+        }
+    }
+
+    fun deleteAccount(id: Long) {
+        viewModelScope.launch {
+            repository.deleteAccount(id)
+        }
     }
 
     fun addCurrentPageBookmark() {

@@ -165,6 +165,27 @@ class BrowserRepository(private val database: GlobeDatabase) {
         database.userAccountDao().setCurrentAccount(id)
     }
 
+    suspend fun addAccount(account: UserAccountItem) = withContext(Dispatchers.IO) {
+        val count = database.userAccountDao().getAccountCount()
+        if (count >= 700) return@withContext // Capacity limit of 700 accounts
+
+        database.userAccountDao().insertAccount(
+            UserAccountEntity(
+                id = if (account.id > 0) account.id else 0,
+                username = account.username,
+                email = account.email,
+                fullName = account.fullName,
+                avatarColorHex = account.avatarColorHex,
+                role = account.role,
+                isCurrent = account.isCurrent
+            )
+        )
+    }
+
+    suspend fun deleteAccount(id: Long) = withContext(Dispatchers.IO) {
+        database.userAccountDao().deleteAccount(id)
+    }
+
     suspend fun searchAccounts(query: String): List<UserAccountItem> = withContext(Dispatchers.IO) {
         database.userAccountDao().searchAccounts(query).map {
             UserAccountItem(
@@ -187,72 +208,41 @@ class BrowserRepository(private val database: GlobeDatabase) {
 
     suspend fun checkAndSeedInitialData() = withContext(Dispatchers.IO) {
         val existingCount = database.userAccountDao().getAccountCount()
-        if (existingCount < 500) {
-            // Seed 700 accounts representing 500 people
-            val firstNames = listOf(
-                "Alex", "Jordan", "Taylor", "Morgan", "Sam", "Chris", "Pat", "Riley", "Casey", "Jamie",
-                "Avery", "Logan", "Parker", "Quinn", "Cameron", "Dakota", "Reese", "Rowan", "Hayden", "Kendall",
-                "Devon", "Harper", "Finley", "Eden", "Emerson", "Peyton", "Adrian", "Kai", "River", "Skyler"
+        if (existingCount == 0) {
+            // Seed private user account into 700-capacity storage database
+            val primaryAccount = UserAccountEntity(
+                id = 1,
+                username = "my_profile",
+                email = "user@gmail.com",
+                fullName = "Personal Profile (Google)",
+                avatarColorHex = "#1A73E8",
+                role = "Primary Account",
+                isCurrent = true
             )
-            val lastNames = listOf(
-                "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez",
-                "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin",
-                "Lee", "Perez", "Thompson", "White", "Harris", "Sanchez", "Clark", "Ramirez", "Lewis", "Robinson"
+            database.userAccountDao().insertAccount(primaryAccount)
+        } else if (existingCount > 100) {
+            // Clean up any previously seeded dummy crowd data so the user's private database is pristine
+            val current = database.userAccountDao().getCurrentAccount()
+            database.userAccountDao().deleteAllAccounts()
+            val primaryAccount = UserAccountEntity(
+                id = 1,
+                username = current?.username ?: "my_profile",
+                email = current?.email ?: "user@gmail.com",
+                fullName = current?.fullName ?: "Personal Profile (Google)",
+                avatarColorHex = current?.avatarColorHex ?: "#1A73E8",
+                role = "Primary Account",
+                isCurrent = true
             )
-            val roles = listOf("Developer", "Architect", "Designer", "Tester", "Researcher", "Analyst", "Product Manager", "Security Specialist")
-            val colors = listOf("#00C8FF", "#FF3366", "#7928CA", "#10B981", "#F59E0B", "#EC4899", "#3B82F6", "#8B5CF6")
-
-            val accountsList = mutableListOf<UserAccountEntity>()
-            // First 500 unique people
-            for (i in 1..500) {
-                val fn = firstNames[(i * 7) % firstNames.size]
-                val ln = lastNames[(i * 11) % lastNames.size]
-                val role = roles[i % roles.size]
-                val color = colors[i % colors.size]
-                val username = "${fn.lowercase()}.${ln.lowercase()}$i"
-                val email = "$username@globe.net"
-                accountsList.add(
-                    UserAccountEntity(
-                        id = i.toLong(),
-                        username = username,
-                        email = email,
-                        fullName = "$fn $ln",
-                        avatarColorHex = color,
-                        role = role,
-                        isCurrent = (i == 1)
-                    )
-                )
-            }
-
-            // Next 200 secondary/work accounts for 200 of these people (making 700 accounts total across 500 people)
-            for (j in 1..200) {
-                val personIndex = (j * 3) % 500
-                val primary = accountsList[personIndex]
-                val username = "${primary.username}.alt"
-                val email = "${primary.username}.work@enterprise.globe.org"
-                accountsList.add(
-                    UserAccountEntity(
-                        id = (500 + j).toLong(),
-                        username = username,
-                        email = email,
-                        fullName = "${primary.fullName} (Work)",
-                        avatarColorHex = colors[(j + 3) % colors.size],
-                        role = "Enterprise " + primary.role,
-                        isCurrent = false
-                    )
-                )
-            }
-            database.userAccountDao().insertAccounts(accountsList)
+            database.userAccountDao().insertAccount(primaryAccount)
         }
 
         // Seed default bookmarks if empty
         val defaultBookmarks = listOf(
             BookmarkEntity(title = "Google Search", url = "https://www.google.com", iconEmoji = "🔍", category = "Search"),
             BookmarkEntity(title = "Google Maps", url = "https://maps.google.com", iconEmoji = "🗺️", category = "Navigation"),
-            BookmarkEntity(title = "Wikipedia", url = "https://www.wikipedia.org", iconEmoji = "📚", category = "Knowledge"),
             BookmarkEntity(title = "YouTube", url = "https://www.youtube.com", iconEmoji = "▶️", category = "Media"),
+            BookmarkEntity(title = "Wikipedia", url = "https://www.wikipedia.org", iconEmoji = "📚", category = "Knowledge"),
             BookmarkEntity(title = "GitHub", url = "https://github.com", iconEmoji = "💻", category = "Development"),
-            BookmarkEntity(title = "Opera GX", url = "https://www.opera.com/gx", iconEmoji = "🎮", category = "Gaming"),
             BookmarkEntity(title = "Reddit", url = "https://www.reddit.com", iconEmoji = "💬", category = "Social"),
             BookmarkEntity(title = "Hacker News", url = "https://news.ycombinator.com", iconEmoji = "📰", category = "News")
         )

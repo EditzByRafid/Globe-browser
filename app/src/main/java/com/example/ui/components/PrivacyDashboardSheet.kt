@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.BlockedTracker
 import com.example.model.BrowserSettings
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -95,12 +95,10 @@ fun PrivacyDashboardSheet(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        enabled = settings.liquidGlassEnabled,
-                        lowEndMode = settings.lowEndModeEnabled,
+                    .chromeCard(
                         shape = RoundedCornerShape(16.dp)
                     ),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Tracker Blocker Toggle

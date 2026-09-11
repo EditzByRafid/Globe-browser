@@ -218,8 +218,8 @@ class MainActivity : ComponentActivity() {
                                 history = history,
                                 totalBlocked = totalBlocked,
                                 onNavigate = { url -> browserViewModel.navigate(url) },
-                                onToggleLiquidGlass = { browserViewModel.toggleLiquidGlass() },
-                                onToggleLowEndMode = { browserViewModel.toggleLowEndMode() },
+                                onSetTheme = { theme -> browserViewModel.setTheme(theme) },
+                                onSelectSearchEngine = { engine -> browserViewModel.updateSettings(settings.copy(searchEngine = engine)) },
                                 onOpenAiWithPrompt = { prompt ->
                                     showGeminiAi = true
                                     browserViewModel.sendAiMessage(prompt)
@@ -397,6 +397,14 @@ class MainActivity : ComponentActivity() {
                                 browserViewModel.switchAccount(id)
                                 Toast.makeText(context, "Switched active profile", Toast.LENGTH_SHORT).show()
                             },
+                            onAddAccount = { account ->
+                                browserViewModel.addAccount(account)
+                                Toast.makeText(context, "Account added to vault", Toast.LENGTH_SHORT).show()
+                            },
+                            onDeleteAccount = { id ->
+                                browserViewModel.deleteAccount(id)
+                                Toast.makeText(context, "Account removed", Toast.LENGTH_SHORT).show()
+                            },
                             onDismiss = { showAccounts = false }
                         )
                     }
@@ -418,6 +426,7 @@ class MainActivity : ComponentActivity() {
                         SettingsSheet(
                             settings = settings,
                             onUpdateSettings = { s -> browserViewModel.updateSettings(s) },
+                            onToggleSearchEngine = { engineName -> browserViewModel.toggleSearchEngine(engineName) },
                             onClearAllData = {
                                 browserViewModel.panicWipe()
                                 Toast.makeText(context, "Cleared all browsing data & cache", Toast.LENGTH_SHORT).show()
@@ -490,6 +499,7 @@ class MainActivity : ComponentActivity() {
 
                     if (showSplashScreen) {
                         GoogleSplashScreen(
+                            theme = settings.theme,
                             onDismiss = { showSplashScreen = false }
                         )
                     }

@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.example.model.BrowserSettings
 import com.example.model.TabItem
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -161,15 +161,14 @@ fun TabsOverviewSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp)
-                            .liquidGlass(
-                                enabled = settings.liquidGlassEnabled,
-                                lowEndMode = settings.lowEndModeEnabled,
-                                shape = RoundedCornerShape(14.dp),
-                                borderColor = if (isActive) MaterialTheme.colorScheme.primary else Color.Unspecified
+                            .chromeCard(
+                                shape = RoundedCornerShape(14.dp)
                             )
                             .clickable { onSelectTab(tab.id) },
                         colors = CardDefaults.cardColors(
-                            containerColor = if (tab.isIncognito) Color(0xFF1E102E) else Color.Transparent
+                            containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            else if (tab.isIncognito) Color(0xFF1E102E)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                         )
                     ) {
                         Column(

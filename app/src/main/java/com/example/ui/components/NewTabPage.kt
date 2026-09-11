@@ -1,5 +1,8 @@
 package com.example.ui.components
 
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,14 +22,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
 import com.example.ui.theme.GlobePalettes
-import com.example.ui.theme.liquidGlass
+import com.example.ui.theme.chromeCard
 
 @Composable
 fun NewTabPage(
@@ -35,8 +40,8 @@ fun NewTabPage(
     history: List<HistoryItem>,
     totalBlocked: Int,
     onNavigate: (String) -> Unit,
-    onToggleLiquidGlass: () -> Unit,
-    onToggleLowEndMode: () -> Unit,
+    onSetTheme: (BrowserTheme) -> Unit = {},
+    onSelectSearchEngine: (SearchEngine) -> Unit = {},
     onOpenAiWithPrompt: (String) -> Unit,
     onOpenMaps: () -> Unit,
     onOpenLens: () -> Unit = {},
@@ -49,10 +54,13 @@ fun NewTabPage(
     var newShortcutName by remember { mutableStateOf("") }
     var newShortcutUrl by remember { mutableStateOf("") }
     var newShortcutEmoji by remember { mutableStateOf("🌐") }
+    var showApkDownloadDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     var customShortcuts by remember {
         mutableStateOf(
             listOf(
-                Triple("Gemini Web", "https://gemini.google.com", "✨"),
+                Triple("Gemini AI", "https://gemini.google.com", "✨"),
                 Triple("Google Drive", "https://drive.google.com", "📁")
             )
         )
@@ -62,35 +70,24 @@ fun NewTabPage(
     // Opening animation for Google/Globe brand dots
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.96f,
-        targetValue = 1.04f,
+        initialValue = 0.97f,
+        targetValue = 1.03f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400, easing = FastOutSlowInEasing),
+            animation = tween(1600, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
     )
 
-    val quickLinks = remember {
+    val defaultShortcuts = remember {
         listOf(
             Triple("Google", "https://www.google.com", "🔍"),
-            Triple("Google Maps", "https://maps.google.com", "🗺️"),
+            Triple("Maps", "https://maps.google.com", "🗺️"),
             Triple("YouTube", "https://www.youtube.com", "▶️"),
             Triple("Wikipedia", "https://www.wikipedia.org", "📚"),
             Triple("GitHub", "https://github.com", "💻"),
-            Triple("Opera GX", "https://www.opera.com/gx", "🎮"),
             Triple("Reddit", "https://www.reddit.com", "💬"),
             Triple("TechCrunch", "https://techcrunch.com", "⚡")
-        )
-    }
-
-    val curatedNews = remember {
-        listOf(
-            NewsItem("1", "Next-gen Web Architectures: High Performance on Budget Phones", "TechRadar", "2h ago", "Technology", "https://techradar.com", "📱"),
-            NewsItem("2", "Gemini 3.5 & Pro Redefine Mobile Browser Intelligence", "AI Insights", "4h ago", "Artificial Intelligence", "https://ai.google", "✨"),
-            NewsItem("3", "Privacy by Default: How Ad Trackers are Intercepted Locally", "CyberSec Weekly", "6h ago", "Privacy", "https://eff.org", "🛡️"),
-            NewsItem("4", "Google Maps Grounding Bridges Local Discovery and Web Search", "Maps Daily", "8h ago", "Navigation", "https://google.com/maps", "📍"),
-            NewsItem("5", "CSS Shaders and Glassmorphism Rendering on Mobile Chips", "DevBytes", "12h ago", "Web Design", "https://web.dev", "🎨")
         )
     }
 
@@ -98,22 +95,86 @@ fun NewTabPage(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 24.dp, bottom = 96.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
+        contentPadding = PaddingValues(top = 18.dp, bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
+        // Physical Device / Download APK Banner
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .chromeCard(shape = RoundedCornerShape(16.dp))
+                    .clickable { showApkDownloadDialog = true },
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DownloadForOffline,
+                            contentDescription = "Download APK",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = "Run on Your Real Phone (120Hz)",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                            SuggestionChip(
+                                onClick = { showApkDownloadDialog = true },
+                                label = { Text("FAST", fontSize = 9.sp, fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.height(20.dp)
+                            )
+                        }
+                        Text(
+                            text = "Download APK to bypass browser emulator lag & inverted colors",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    FilledTonalButton(
+                        onClick = { showApkDownloadDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("APK", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+
         // Hero Branding Header with Google Chrome 'G' Ring Logo
         item {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 12.dp),
+                    .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Google Chrome / Globe 'G' Ring Logo
+                // Google Chrome 4-color Ring 'G'
                 Box(
                     modifier = Modifier
-                        .size(76.dp)
-                        .scale(if (settings.reduceMotion || settings.lowEndModeEnabled) 1f else pulseScale)
+                        .size(74.dp)
+                        .scale(if (settings.reduceMotion) 1f else pulseScale)
                         .clip(CircleShape)
                         .background(
                             Brush.sweepGradient(
@@ -130,98 +191,62 @@ fun NewTabPage(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(54.dp)
+                            .size(52.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.background),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "G",
-                            fontSize = 32.sp,
+                            fontSize = 30.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "Globe Browser",
+                    text = "Globe Chrome",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
 
-                // Google Opening 4-color dots
+                // Google 4-color dots
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.padding(top = 4.dp)
                 ) {
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF4285F4))) // Blue
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFEA4335))) // Red
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFFFBBC05))) // Yellow
-                    Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF34A853))) // Green
+                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFF4285F4)))
+                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFEA4335)))
+                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFFFBBC05)))
+                    Box(modifier = Modifier.size(7.dp).clip(CircleShape).background(Color(0xFF34A853)))
                 }
-
-                Text(
-                    text = "Liquid Glass • Gemini AI • Chrome & Safari Power Engine",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 6.dp)
-                )
             }
         }
 
-        // Dedicated Google Search Box with Google Lens Button
+        // Google / Omnibox Search Field with Lens button
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        enabled = settings.liquidGlassEnabled,
-                        lowEndMode = settings.lowEndModeEnabled,
-                        shape = RoundedCornerShape(26.dp),
-                        elevation = 4.dp
-                    ),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (settings.liquidGlassEnabled && !settings.lowEndModeEnabled)
-                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f)
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
-                )
+                    .chromeCard(shape = RoundedCornerShape(26.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                        .padding(horizontal = 14.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Google 4-color 'G' brand mark
-                    Box(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.sweepGradient(
-                                    listOf(
-                                        Color(0xFF4285F4),
-                                        Color(0xFFEA4335),
-                                        Color(0xFFFBBC05),
-                                        Color(0xFF34A853),
-                                        Color(0xFF4285F4)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "G",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                    // Search Engine icon
+                    Text(
+                        text = settings.searchEngine.iconEmoji,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(start = 2.dp)
+                    )
 
                     Spacer(modifier = Modifier.width(10.dp))
 
@@ -230,7 +255,7 @@ fun NewTabPage(
                         onValueChange = { ntpSearchText = it },
                         placeholder = {
                             Text(
-                                "Search ${settings.searchEngine.displayName} or type URL",
+                                "Search ${settings.searchEngine.displayName} or enter URL",
                                 fontSize = 13.sp,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
@@ -252,7 +277,6 @@ fun NewTabPage(
                                     }
                                 }
 
-                                // Clear, prominent Google Lens Button
                                 IconButton(
                                     onClick = onOpenLens,
                                     modifier = Modifier
@@ -273,167 +297,78 @@ fun NewTabPage(
             }
         }
 
-        // Search Mode Selector Bar: AI Mode, Images, Videos, News, Forums, Search Tools
+        // Quick Search Engine Selector Row (Google default + toggled engines)
         item {
-            LazyRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "google trending" }
-                            onNavigate("https://www.google.com/search?q=${java.net.URLEncoder.encode(q, "UTF-8")}")
-                        },
-                        label = { Text("🌐 All", fontSize = 11.sp, fontWeight = FontWeight.SemiBold) },
-                        shape = RoundedCornerShape(12.dp)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Search Engine (Default: Google)",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "Explain the latest web technologies" }
-                            onOpenAiWithPrompt(q)
-                        },
-                        label = { Text("✨ AI Mode", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = GlobePalettes.ElectricCyan) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = AssistChipDefaults.assistChipColors(containerColor = GlobePalettes.ElectricCyan.copy(alpha = 0.15f))
-                    )
-                }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "high resolution wallpapers" }
-                            onNavigate("https://www.google.com/search?tbm=isch&q=${java.net.URLEncoder.encode(q, "UTF-8")}")
-                        },
-                        label = { Text("🖼️ Images", fontSize = 11.sp) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "popular videos" }
-                            onNavigate("https://www.google.com/search?tbm=vid&q=${java.net.URLEncoder.encode(q, "UTF-8")}")
-                        },
-                        label = { Text("🎥 Videos", fontSize = 11.sp) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "breaking news" }
-                            onNavigate("https://news.google.com/search?q=${java.net.URLEncoder.encode(q, "UTF-8")}")
-                        },
-                        label = { Text("📰 News", fontSize = 11.sp) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "best android browsers" }
-                            onNavigate("https://www.google.com/search?q=${java.net.URLEncoder.encode(q, "UTF-8")}+site:reddit.com+OR+site:quora.com")
-                        },
-                        label = { Text("💬 Forums", fontSize = 11.sp) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                }
-                item {
-                    AssistChip(
-                        onClick = {
-                            val q = ntpSearchText.ifBlank { "technology" }
-                            onNavigate("https://www.google.com/search?q=${java.net.URLEncoder.encode(q, "UTF-8")}&tbs=qdr:d")
-                        },
-                        label = { Text("⚡ Past 24h", fontSize = 11.sp) },
-                        shape = RoundedCornerShape(12.dp)
-                    )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val availableEngines = SearchEngine.values().filter {
+                        it == SearchEngine.GOOGLE || settings.enabledSearchEngines.contains(it.name)
+                    }
+
+                    items(availableEngines) { engine ->
+                        val isSelected = (settings.searchEngine == engine)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onSelectSearchEngine(engine) },
+                            label = { Text("${engine.iconEmoji} ${engine.displayName}", fontSize = 11.sp) },
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 }
             }
         }
 
-        // Google Lens Visual Discovery & Firebase Account Quick Access Row
+        // Quick Theme Selector (Light, Dark, Midnight)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // Google Lens Visual Search Card
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onOpenLens() }
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF4285F4).copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.DocumentScanner, contentDescription = null, tint = Color(0xFF4285F4), modifier = Modifier.size(18.dp))
-                        }
-                        Column {
-                            Text("Google Lens", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("Visual Search & OCR", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-
-                // Firebase Cloud Account Card
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable { onOpenAuth() }
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFFFA000).copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color(0xFFF57C00), modifier = Modifier.size(18.dp))
-                        }
-                        Column {
-                            Text("Firebase Sync", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("Login & Cloud Sync", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                Text(
+                    text = "Theme Modes:",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (themeOption in BrowserTheme.values()) {
+                        val selected = (settings.theme == themeOption)
+                        FilterChip(
+                            selected = selected,
+                            onClick = { onSetTheme(themeOption) },
+                            label = { Text(themeOption.label, fontSize = 11.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
                     }
                 }
             }
         }
 
-        // Gemini AI Quick Actions Chips
+        // Gemini AI Quick Sparks
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
+                    modifier = Modifier.padding(bottom = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.AutoAwesome,
@@ -442,7 +377,7 @@ fun NewTabPage(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        text = "Gemini Quick Sparks",
+                        text = "Gemini AI Sparks",
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.SemiBold
@@ -454,40 +389,32 @@ fun NewTabPage(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     val aiPrompts = listOf(
-                        "✨ Summarize today's top news",
-                        "🗺️ Find best coffee spots nearby",
-                        "💡 Explain quantum computing simply",
-                        "💻 Write a Kotlin coroutine example",
-                        "🛡️ How does browser fingerprinting work?"
+                        "✨ Summarize top news",
+                        "🗺️ Find best spots nearby",
+                        "💡 Explain quantum physics",
+                        "💻 Write a Kotlin example",
+                        "🛡️ How do ad blockers work?"
                     )
                     items(aiPrompts) { prompt ->
                         AssistChip(
                             onClick = { onOpenAiWithPrompt(prompt) },
-                            label = { Text(prompt, fontSize = 12.sp) },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                            ),
-                            border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = MaterialTheme.colorScheme.outlineVariant)
+                            label = { Text(prompt, fontSize = 11.sp) },
+                            shape = RoundedCornerShape(14.dp)
                         )
                     }
                 }
             }
         }
 
-        // Speed Dial / Quick Links Grid with Shortcut Creator
+        // Speed Dial / Quick Links Grid
         item {
-            val combinedShortcuts = quickLinks + customShortcuts
+            val combinedShortcuts = defaultShortcuts + customShortcuts
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        enabled = settings.liquidGlassEnabled,
-                        lowEndMode = settings.lowEndModeEnabled,
-                        shape = RoundedCornerShape(18.dp)
-                    ),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                    .chromeCard(shape = RoundedCornerShape(18.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(
@@ -511,8 +438,7 @@ fun NewTabPage(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Dynamic Grid of Shortcuts
-                    val totalSlots = combinedShortcuts.size + 1 // +1 for the Add button tile
+                    val totalSlots = combinedShortcuts.size + 1
                     val rowCount = (totalSlots + 3) / 4
 
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -530,7 +456,7 @@ fun NewTabPage(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(12.dp))
                                                 .clickable {
-                                                    if (link.first == "Google Maps") onOpenMaps() else onNavigate(link.second)
+                                                    if (link.first == "Maps") onOpenMaps() else onNavigate(link.second)
                                                 }
                                                 .padding(6.dp)
                                         ) {
@@ -552,7 +478,6 @@ fun NewTabPage(
                                             )
                                         }
                                     } else if (index == combinedShortcuts.size) {
-                                        // "+ Add" Tile
                                         Column(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             modifier = Modifier
@@ -593,162 +518,60 @@ fun NewTabPage(
             }
         }
 
-        // Real-Time Privacy & System Status Cards (Dual Row)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                // Privacy Shield Card
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
-                            shape = RoundedCornerShape(16.dp)
-                        ),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Shield,
-                                contentDescription = null,
-                                tint = GlobePalettes.ElectricCyan,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "ACTIVE",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = GlobePalettes.ElectricCyan,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "$totalBlocked Blocked",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Trackers & Ads stopped",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Performance Mode Card (Realme Note 60 Optimization)
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .liquidGlass(
-                            enabled = settings.liquidGlassEnabled,
-                            lowEndMode = settings.lowEndModeEnabled,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .clickable { onToggleLowEndMode() },
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Speed,
-                                contentDescription = null,
-                                tint = if (settings.lowEndModeEnabled) Color(0xFF10B981) else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Switch(
-                                checked = settings.lowEndModeEnabled,
-                                onCheckedChange = { onToggleLowEndMode() },
-                                modifier = Modifier.scale(0.7f)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (settings.lowEndModeEnabled) "Low-End Mode ON" else "Standard Mode",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = if (settings.lowEndModeEnabled) "Optimized for budget chips" else "Tap for Realme Note 60",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-
-        // Liquid Glass UI Card
+        // Privacy Shield Summary Card
         item {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        enabled = settings.liquidGlassEnabled,
-                        lowEndMode = settings.lowEndModeEnabled,
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .clickable { onToggleLiquidGlass() },
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                    .chromeCard(shape = RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF34A853).copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BlurOn,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        Column {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFF34A853),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(
-                                text = "Liquid Glass Effect",
+                                text = "Local Privacy Shield",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = if (settings.liquidGlassEnabled) "Glossy translucent frosted glass" else "Solid high-contrast surface (Faster)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            SuggestionChip(
+                                onClick = {},
+                                label = { Text("ON", fontSize = 9.sp, fontWeight = FontWeight.Bold) },
+                                modifier = Modifier.height(20.dp)
                             )
                         }
+                        Text(
+                            text = "$totalBlocked ads & tracking requests stopped on-device",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-
-                    Switch(
-                        checked = settings.liquidGlassEnabled,
-                        onCheckedChange = { onToggleLiquidGlass() }
-                    )
                 }
             }
         }
 
-        // Discover & Chrome News Feed Section with Category Filter
+        // Chrome Discover Feed Section
         item {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
@@ -757,13 +580,13 @@ fun NewTabPage(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Chrome Discover Feed",
+                        text = "Discover Feed",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Personalized",
+                        text = "Stories for you",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -775,7 +598,7 @@ fun NewTabPage(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val categories = listOf("For You", "Tech & AI", "Gaming GX", "World News", "Science", "Crypto")
+                    val categories = listOf("For You", "Tech & AI", "Gaming", "World News", "Science")
                     items(categories) { cat ->
                         FilterChip(
                             selected = (selectedNewsCategory == cat),
@@ -788,16 +611,12 @@ fun NewTabPage(
         }
 
         val allNewsList = listOf(
-            NewsItem("1", "Next-gen Web Architectures: High Performance on Budget Phones", "TechRadar", "2h ago", "Tech & AI", "https://techradar.com", "📱"),
+            NewsItem("1", "Next-gen Web Architectures: High Performance on Mobile Phones", "TechRadar", "2h ago", "Tech & AI", "https://techradar.com", "📱"),
             NewsItem("2", "Gemini 3.5 & Pro Redefine Mobile Browser Intelligence", "AI Insights", "4h ago", "Tech & AI", "https://ai.google", "✨"),
             NewsItem("3", "Privacy by Default: How Ad Trackers are Intercepted Locally", "CyberSec Weekly", "6h ago", "For You", "https://eff.org", "🛡️"),
-            NewsItem("4", "Opera GX and Chrome Introduce Dynamic Ram and CPU Limiters", "Gaming Central", "1h ago", "Gaming GX", "https://opera.com/gx", "🎮"),
-            NewsItem("5", "Google Maps Grounding Bridges Local Discovery and Web Search", "Maps Daily", "8h ago", "For You", "https://google.com/maps", "📍"),
-            NewsItem("6", "James Webb Space Telescope Captures Distant Galaxy Formation", "NASA Science", "3h ago", "Science", "https://nasa.gov", "🔭"),
-            NewsItem("7", "Global Tech Markets Rally on AI Infrastructure Deployments", "Bloomberg Tech", "5h ago", "Crypto", "https://bloomberg.com", "📈"),
-            NewsItem("8", "CSS Shaders and Glassmorphism Rendering on Mobile Chips", "DevBytes", "12h ago", "Tech & AI", "https://web.dev", "🎨"),
-            NewsItem("9", "Next-Gen Unreal Engine 5.5 Features Mobile Nanite Geometry", "IGN Gaming", "7h ago", "Gaming GX", "https://ign.com", "🕹️"),
-            NewsItem("10", "Quantum Computing Breakthrough in Fault-Tolerant Qubits", "Science Daily", "14h ago", "Science", "https://sciencedaily.com", "⚛️")
+            NewsItem("4", "Chrome & Web Engines Optimize RAM Limiters for Mobile", "Tech Daily", "1h ago", "Gaming", "https://google.com/chrome", "🎮"),
+            NewsItem("5", "James Webb Space Telescope Captures Distant Galaxy Formation", "NASA Science", "3h ago", "Science", "https://nasa.gov", "🔭"),
+            NewsItem("6", "Quantum Computing Breakthrough in Fault-Tolerant Qubits", "Science Daily", "14h ago", "Science", "https://sciencedaily.com", "⚛️")
         )
 
         val filteredNews = if (selectedNewsCategory == "For You") allNewsList else allNewsList.filter { it.category == selectedNewsCategory }
@@ -806,13 +625,9 @@ fun NewTabPage(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .liquidGlass(
-                        enabled = settings.liquidGlassEnabled,
-                        lowEndMode = settings.lowEndModeEnabled,
-                        shape = RoundedCornerShape(14.dp)
-                    )
+                    .chromeCard(shape = RoundedCornerShape(14.dp))
                     .clickable { onNavigate(news.url) },
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
             ) {
                 Row(
                     modifier = Modifier
@@ -854,6 +669,57 @@ fun NewTabPage(
                 }
             }
         }
+    }
+
+    // APK Download Instructions Dialog
+    if (showApkDownloadDialog) {
+        AlertDialog(
+            onDismissRequest = { showApkDownloadDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Android, contentDescription = null, tint = Color(0xFF34A853))
+                    Text("Download APK for Real Phone", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "To test Globe Browser on your real phone without any emulator lag or inverted colors:",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("1. Click 'Export APK' or 'Download APK' in the AI Studio platform header/menu.", fontSize = 12.sp)
+                            Text("2. Transfer or download the APK directly to your Android device.", fontSize = 12.sp)
+                            Text("3. Tap the downloaded APK to install and enjoy 120Hz smooth browsing.", fontSize = 12.sp)
+                        }
+                    }
+                    Text(
+                        text = "Globe Browser is fully compiled with hardware acceleration and supports Android 9.0 to Android 15.",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        Toast.makeText(context, "Ready! Use the AI Studio top bar / menu to download APK", Toast.LENGTH_LONG).show()
+                        showApkDownloadDialog = false
+                    }
+                ) {
+                    Text("Got it")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showApkDownloadDialog = false }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 
     // Shortcut Creator Dialog
