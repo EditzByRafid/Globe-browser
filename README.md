@@ -16,9 +16,27 @@
   - Search query history manager with single-tap delete buttons ('X') for individual search items and a "Clear All" option.
   - One-tap clipboard paste chips and quick-destination launchpad.
 
-- **📱 Hardware Navigation & Back-to-Home:**
-  - Physical back button and UI back button immediately navigate back to the home screen (New Tab Page).
+- **🖥️ Full Screen Browsing & Immersive Navigation:**
+  - True fullscreen browsing mode that collapses top and bottom toolbars to maximize screen real estate.
+  - Floating exit action button to return from fullscreen mode at any time.
+  - Full support for hardware back button navigation and low-latency page traversal.
 
+- **🧩 In-Browser Chrome Web Store:**
+  - Dedicated Chrome Web Store interface (`globe://webstore` / `globe://extensions-store`).
+  - Search, preview, install, and review extensions across Ad Blockers, Productivity, Themes, and Developer Tools.
+  - UserScript Studio for writing, testing, and running custom JavaScript and CSS extensions.
+
+- **📖 Distraction-Free Reader Mode:**
+  - Automatic article text extraction, domain info, and estimated reading times.
+  - 4 reading color themes (Light, Sepia, Dark, OLED Pitch Black) and custom typography controls (Serif, Sans-Serif, Monospace).
+  - Native Text-to-Speech (TTS) engine for hands-free listening.
+
+- **📥 Built-in Downloads Manager:**
+  - Full-featured Downloads Hub (`globe://downloads`) with progress tracking, pause, resume, cancel, and clear actions.
+  - Categorized file management for Documents, Images, Audio, Video, and Archives.
+
+- **📱 Hardware Navigation & Back-to-Home:**
+  - Physical back button and UI back button immediately navigate back to the home screen (New Tab Page) or previous webpage.
 
 - **🎨 High-Quality Vector Logos (No Emojis):**
   - Crisp vector logos for Google, YouTube, GitHub, Wikipedia, Reddit, X (Twitter), Maps, Amazon, TechCrunch, and more.
@@ -26,10 +44,11 @@
 - **🛡️ Built-in Privacy Shield:**
   - Zero-latency local ad and telemetry blocker.
   - Real-time tracker blocking counter and domain inspector.
+  - Encrypted Password Vault with domain-matching autofill.
 
-- **⚡ Standalone APK Included:**
-  - Ready-to-install `GB.apk` included directly in the `download apk/` folder.
+- **⚡ Performance & Low-RAM Optimization:**
+  - Lite Mode tailored for 2GB–4GB RAM devices (Realme Note 60, Redmi 5, etc.).
+  - Super Cache engine for fast back/forward navigation without unnecessary re-fetching.
   - Fully compatible with Android 6.0 (Marshmallow, API 23) through Android 16+ (API 36).
-
 
 ---

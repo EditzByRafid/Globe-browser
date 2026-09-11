@@ -8,20 +8,20 @@ Download packages for **GB Browser**, engineered for maximum performance, batter
 
 | File | Platform | Compatibility | Description |
 |---|---|---|---|
-| **`GB-Browser.apk`** / **`GB.apk`** | **Android** | Android 6.0 (API 23) to Android 16+ (API 36) | Full native build. Optimized for Realme Note 60, Redmi 5, Samsung Galaxy, Pixel, etc. with 90Hz/120Hz smooth scrolling. |
-| **`GB-Browser.ipa`** / **`GB.ipa`** | **iOS** | iOS 14.0 to iOS 26+ (iPhone 6s through iPhone 17+) | Apple iOS IPA package bundle for Sideloadly, AltStore, TrollStore, and TestFlight distribution. |
+| **`GB-Browser.apk`** | **Android** | Android 6.0 (API 23) to Android 16+ (API 36) | Full native build. Optimized for Realme Note 60, Redmi 5, Samsung Galaxy, Pixel, etc. with 90Hz/120Hz smooth scrolling. |
+| **`GB-Browser.ipa`** | **iOS** | iOS 14.0 to iOS 26+ (iPhone 6s through iPhone 17+) | Apple iOS IPA package bundle for Sideloadly, AltStore, TrollStore, and TestFlight distribution. |
 
 ---
 
 ## 📱 Android Installation Guide (Realme Note 60, Redmi 5, etc.)
 
 1. **Transfer or Download:**
-   - Copy `GB.apk` or `GB-Browser.apk` to your phone via USB cable, Google Drive, or by direct download.
+   - Copy `GB-Browser.apk` to your phone via USB cable, Google Drive, or direct download.
 2. **Enable Unknown Sources / Install Unknown Apps:**
    - On **Realme Note 60 / Realme UI**: Go to *Settings → Security → Unknown Source Installation → Allow*.
    - On **Redmi 5 / MIUI**: Go to *Settings → Additional settings → Privacy → Special app access → Install unknown apps → Enable*.
 3. **Install & Launch:**
-   - Open your file manager, tap `GB.apk`, and tap **Install**.
+   - Open your file manager, tap `GB-Browser.apk`, and tap **Install**.
    - Tap **Open** to enjoy ultra-fast browsing!
 
 ---

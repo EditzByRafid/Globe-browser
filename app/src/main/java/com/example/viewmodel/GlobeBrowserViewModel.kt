@@ -104,8 +104,8 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
         listOf(
             DownloadItem(
                 id = "dl-1",
-                fileName = "Download Browser.apk",
-                fileUrl = "https://gb-browser.internal/download/Download-Browser.apk",
+                fileName = "GB-Browser.apk",
+                fileUrl = "https://gb-browser.internal/download/GB-Browser.apk",
                 totalSizeBytes = 31457280L,
                 downloadedBytes = 31457280L,
                 status = DownloadStatus.COMPLETED,
