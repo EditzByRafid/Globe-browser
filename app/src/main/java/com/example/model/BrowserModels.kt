@@ -116,7 +116,11 @@ data class BrowserSettings(
     val highThinkingAi: Boolean = true,
     val showHorizontalTabStrip: Boolean = false,
     val readerModeEnabled: Boolean = false,
-    val pageZoomPercent: Int = 100
+    val pageZoomPercent: Int = 100,
+    val isFirstLaunchSetupDone: Boolean = false,
+    val destinationRegion: String = "Global",
+    val appLanguage: String = "English (US)",
+    val performanceProfile: String = "Ultra Smooth (Auto 90Hz/120Hz)"
 )
 
 enum class LensMode(val label: String, val iconEmoji: String) {

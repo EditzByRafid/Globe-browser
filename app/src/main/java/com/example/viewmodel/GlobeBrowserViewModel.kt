@@ -320,6 +320,12 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
         }
     }
 
+    fun deleteHistoryItem(id: Long) {
+        viewModelScope.launch {
+            repository.deleteHistoryItem(id)
+        }
+    }
+
     fun clearBlockedLogs() {
         viewModelScope.launch {
             repository.clearBlockedLogs()

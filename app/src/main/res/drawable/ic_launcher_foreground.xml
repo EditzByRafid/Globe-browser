@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/new_globe_logo_icon_1789056468649"
+        android:drawable="@drawable/img_gb_logo"
         android:gravity="center" />
 </layer-list>

@@ -128,6 +128,10 @@ class BrowserRepository(private val database: GlobeDatabase) {
         database.historyDao().clearHistory()
     }
 
+    suspend fun deleteHistoryItem(id: Long) = withContext(Dispatchers.IO) {
+        database.historyDao().deleteHistoryItem(id)
+    }
+
     suspend fun logBlockedTracker(domain: String, category: String) = withContext(Dispatchers.IO) {
         database.blockedTrackerDao().insertBlocked(
             BlockedTrackerEntity(domain = domain, category = category)

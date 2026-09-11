@@ -17,7 +17,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
-import com.example.ui.theme.GlobePalettes
 import com.example.ui.theme.chromeCard
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,7 +26,6 @@ fun SettingsSheet(
     onUpdateSettings: (BrowserSettings) -> Unit,
     onToggleSearchEngine: (String) -> Unit = {},
     onClearAllData: () -> Unit,
-    onOpenFirebaseAccount: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     ModalBottomSheet(
@@ -55,7 +53,7 @@ fun SettingsSheet(
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Browser Settings",
+                        text = "GB Settings",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -73,24 +71,54 @@ fun SettingsSheet(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(top = 10.dp, bottom = 24.dp)
             ) {
-                // Device & APK Download Banner
+                // Section: Universal Hardware Performance Optimization
+                item {
+                    Text(
+                        text = "Device Performance Profile (Android 4 - 16)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
                 item {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
                             .chromeCard(shape = RoundedCornerShape(14.dp)),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Icon(Icons.Default.Smartphone, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Text("Physical Phone Installation", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            }
+                            Text("Engine Acceleration", fontWeight = FontWeight.SemiBold)
                             Text(
-                                text = "Install Globe Browser directly on your real Android phone for ultra-smooth 120Hz performance, accurate OLED colors, and full hardware acceleration without emulator lag.",
+                                "Adapts graphics rendering, memory limits, and frame throttling to prevent stutters on low-end, mid-range, and flagship devices.",
                                 fontSize = 12.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+
+                            val profiles = listOf("ultra_lite" to "Ultra Lite (Low-End)", "balanced" to "Balanced (Mid-Range)", "high_performance" to "Pro 90Hz/120Hz (High-End)")
+                            for (p in profiles) {
+                                val isSelected = settings.performanceProfile == p.first
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable { onUpdateSettings(settings.copy(performanceProfile = p.first)) }
+                                        .padding(vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        p.second,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                    RadioButton(
+                                        selected = isSelected,
+                                        onClick = { onUpdateSettings(settings.copy(performanceProfile = p.first)) }
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -129,7 +157,7 @@ fun SettingsSheet(
                                         Text(
                                             when (t) {
                                                 BrowserTheme.LIGHT -> "Clean bright surfaces & crisp contrast"
-                                                BrowserTheme.DARK -> "Classic Google Chrome dark aesthetic"
+                                                BrowserTheme.DARK -> "Classic dark aesthetic"
                                                 BrowserTheme.MIDNIGHT -> "Pure OLED black (0% battery drain)"
                                             },
                                             fontSize = 11.sp,
@@ -175,8 +203,8 @@ fun SettingsSheet(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text(engine.iconEmoji, fontSize = 16.sp)
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                        SearchEngineVectorLogo(engine = engine, size = 20.dp)
                                         Column {
                                             Text(engine.displayName, fontSize = 13.sp, fontWeight = if (settings.searchEngine == engine) FontWeight.Bold else FontWeight.Normal)
                                             if (engine == SearchEngine.GOOGLE) {
@@ -186,12 +214,10 @@ fun SettingsSheet(
                                     }
 
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        // Radio for default
                                         RadioButton(
                                             selected = (settings.searchEngine == engine),
                                             onClick = { onUpdateSettings(settings.copy(searchEngine = engine)) }
                                         )
-                                        // Switch for enabled in quick toggle
                                         if (engine != SearchEngine.GOOGLE) {
                                             Switch(
                                                 checked = isEnabled,
@@ -225,22 +251,22 @@ fun SettingsSheet(
                     ) {
                         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                text = if (settings.toolbarPosition == ToolbarPosition.BOTTOM) "Bottom Toolbar (Safari Style)" else "Top Toolbar (Chrome Style)",
+                                text = if (settings.toolbarPosition == ToolbarPosition.BOTTOM) "Bottom Toolbar" else "Top Toolbar (Chrome Style)",
                                 fontWeight = FontWeight.SemiBold
                             )
-                            Text("Customize address & search bar placement for one-handed reach", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Customize address & search bar placement", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
                                 FilterChip(
                                     selected = settings.toolbarPosition == ToolbarPosition.TOP,
                                     onClick = { onUpdateSettings(settings.copy(toolbarPosition = ToolbarPosition.TOP)) },
-                                    label = { Text("Top Bar (Chrome)") },
+                                    label = { Text("Top Bar") },
                                     leadingIcon = { Icon(Icons.Default.VerticalAlignTop, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                 )
                                 FilterChip(
                                     selected = settings.toolbarPosition == ToolbarPosition.BOTTOM,
                                     onClick = { onUpdateSettings(settings.copy(toolbarPosition = ToolbarPosition.BOTTOM)) },
-                                    label = { Text("Bottom Bar (Safari)") },
+                                    label = { Text("Bottom Bar") },
                                     leadingIcon = { Icon(Icons.Default.VerticalAlignBottom, contentDescription = null, modifier = Modifier.size(16.dp)) }
                                 )
                             }
@@ -309,30 +335,6 @@ fun SettingsSheet(
                                     steps = 3
                                 )
                             }
-                        }
-                    }
-                }
-
-                // Section: Firebase Cloud Sync
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenFirebaseAccount() }
-                            .chromeCard(shape = RoundedCornerShape(14.dp)),
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA000).copy(alpha = 0.1f))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Icon(Icons.Default.CloudSync, contentDescription = null, tint = Color(0xFFF57C00), modifier = Modifier.size(24.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Firebase Cloud Account & Sync", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Manage cloud session and sync data", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

@@ -1,6 +1,6 @@
 {
-  "name": "Globe Browser",
-  "description": "Fast Chrome-style mobile web browser with animated Google splash screen, multiple toggleable search engines with Google default, Light/Dark/Midnight OLED themes, private 700-account vault, Google Lens visual search, and APK export support.",
+  "name": "GB",
+  "description": "GB ultra-fast premium web browser engineered for Realme Note 60 & modern Android devices with fullscreen search experience, history manager, real vector brand logos, Google Lens, OLED dark modes, and high-performance tactile navigation.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
