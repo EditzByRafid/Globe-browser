@@ -53,6 +53,7 @@ fun WebViewContainer(
     onTrackerBlocked: (String, String) -> Unit,
     onWebViewCreated: (WebView) -> Unit,
     onOpenPasswordManager: () -> Unit = {},
+    onDownloadRequested: (url: String, contentDisposition: String?, contentLength: Long?, mimeType: String?) -> Unit = { _, _, _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -149,7 +150,11 @@ fun WebViewContainer(
                         settings.useWideViewPort = true
                         settings.loadWithOverviewMode = true
 
-                        settings.cacheMode = WebSettings.LOAD_DEFAULT
+                        settings.cacheMode = if (browserSettings.liteModeEnabled) WebSettings.LOAD_CACHE_ELSE_NETWORK else WebSettings.LOAD_DEFAULT
+
+                        setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                            onDownloadRequested(url, contentDisposition, contentLength, mimetype)
+                        }
 
                         if (browserSettings.desktopMode) {
                             settings.userAgentString = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 GlobeBrowser/1.0"

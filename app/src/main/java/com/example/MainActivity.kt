@@ -13,11 +13,16 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -49,6 +54,9 @@ class MainActivity : ComponentActivity() {
             val accounts by browserViewModel.accounts.collectAsState()
             val credentials by browserViewModel.credentials.collectAsState()
             val matchingCredentials by browserViewModel.matchingCredentials.collectAsState()
+            val downloads by browserViewModel.downloads.collectAsState()
+            val readerArticle by browserViewModel.readerArticle.collectAsState()
+            val storeExtensions by browserViewModel.storeExtensions.collectAsState()
             val lensImage by browserViewModel.lensImage.collectAsState()
             val lensMode by browserViewModel.lensMode.collectAsState()
             val isLensAnalyzing by browserViewModel.isLensAnalyzing.collectAsState()
@@ -67,6 +75,7 @@ class MainActivity : ComponentActivity() {
             var showTabsOverview by remember { mutableStateOf(false) }
             var showGoogleLens by remember { mutableStateOf(false) }
             var showFileLab by remember { mutableStateOf(false) }
+            var showDownloadsSheet by remember { mutableStateOf(false) }
             var showPrivacyDashboard by remember { mutableStateOf(false) }
             var showExtensions by remember { mutableStateOf(false) }
             var showAccounts by remember { mutableStateOf(false) }
@@ -105,7 +114,13 @@ class MainActivity : ComponentActivity() {
             // Hardware Back Button Handler
             // User requested: "When i click back button i just go back to the home of the app." / Button navigation compatibility
             BackHandler(enabled = true) {
-                if (showPasswordManagerSheet) {
+                if (showDownloadsSheet) {
+                    showDownloadsSheet = false
+                } else if (settings.readerModeEnabled) {
+                    browserViewModel.closeReaderMode()
+                } else if (settings.fullscreenMode) {
+                    browserViewModel.setFullscreen(false)
+                } else if (showPasswordManagerSheet) {
                     showPasswordManagerSheet = false
                 } else if (showSearchOverlay) {
                     showSearchOverlay = false
@@ -158,7 +173,7 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier.fillMaxSize(),
                             containerColor = MaterialTheme.colorScheme.background,
                             topBar = {
-                                if (settings.toolbarPosition == ToolbarPosition.TOP) {
+                                if (!settings.fullscreenMode && settings.toolbarPosition == ToolbarPosition.TOP) {
                                     OmniboxBar(
                                         tab = activeTab,
                                         settings = settings,
@@ -190,53 +205,55 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             bottomBar = {
-                                if (settings.toolbarPosition == ToolbarPosition.BOTTOM) {
-                                    OmniboxBar(
-                                        tab = activeTab,
-                                        settings = settings,
-                                        tabCount = tabs.size,
-                                        matchingCredentialsCount = matchingCredentials.size,
-                                        onNavigate = { query -> browserViewModel.navigate(query) },
-                                        onBack = {
-                                            if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
-                                                webViewRef?.goBack()
-                                            } else {
-                                                browserViewModel.goHome()
-                                            }
-                                        },
-                                        onForward = { webViewRef?.goForward() },
-                                        onReload = {
-                                            if (activeTab.isLoading) webViewRef?.stopLoading()
-                                            else webViewRef?.reload()
-                                        },
-                                        onHome = { browserViewModel.goHome() },
-                                        onOpenTabs = { showTabsOverview = true },
-                                        onOpenSearchOverlay = { showSearchOverlay = true },
-                                        onOpenLens = { showGoogleLens = true },
-                                        onOpenMenu = { showBrowserMenu = true },
-                                        onOpenVault = { showPasswordManagerSheet = true },
-                                        modifier = Modifier
-                                            .navigationBarsPadding()
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                } else if (settings.buttonNavigationEnabled) {
-                                    BottomNavBar(
-                                        tab = activeTab,
-                                        tabsCount = tabs.size,
-                                        matchingCredentialsCount = matchingCredentials.size,
-                                        onBack = {
-                                            if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
-                                                webViewRef?.goBack()
-                                            } else {
-                                                browserViewModel.goHome()
-                                            }
-                                        },
-                                        onForward = { webViewRef?.goForward() },
-                                        onHome = { browserViewModel.goHome() },
-                                        onOpenVault = { showPasswordManagerSheet = true },
-                                        onOpenTabs = { showTabsOverview = true },
-                                        onOpenMenu = { showBrowserMenu = true }
-                                    )
+                                if (!settings.fullscreenMode) {
+                                    if (settings.toolbarPosition == ToolbarPosition.BOTTOM) {
+                                        OmniboxBar(
+                                            tab = activeTab,
+                                            settings = settings,
+                                            tabCount = tabs.size,
+                                            matchingCredentialsCount = matchingCredentials.size,
+                                            onNavigate = { query -> browserViewModel.navigate(query) },
+                                            onBack = {
+                                                if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                                                    webViewRef?.goBack()
+                                                } else {
+                                                    browserViewModel.goHome()
+                                                }
+                                            },
+                                            onForward = { webViewRef?.goForward() },
+                                            onReload = {
+                                                if (activeTab.isLoading) webViewRef?.stopLoading()
+                                                else webViewRef?.reload()
+                                            },
+                                            onHome = { browserViewModel.goHome() },
+                                            onOpenTabs = { showTabsOverview = true },
+                                            onOpenSearchOverlay = { showSearchOverlay = true },
+                                            onOpenLens = { showGoogleLens = true },
+                                            onOpenMenu = { showBrowserMenu = true },
+                                            onOpenVault = { showPasswordManagerSheet = true },
+                                            modifier = Modifier
+                                                .navigationBarsPadding()
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        )
+                                    } else if (settings.buttonNavigationEnabled) {
+                                        BottomNavBar(
+                                            tab = activeTab,
+                                            tabsCount = tabs.size,
+                                            matchingCredentialsCount = matchingCredentials.size,
+                                            onBack = {
+                                                if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                                                    webViewRef?.goBack()
+                                                } else {
+                                                    browserViewModel.goHome()
+                                                }
+                                            },
+                                            onForward = { webViewRef?.goForward() },
+                                            onHome = { browserViewModel.goHome() },
+                                            onOpenVault = { showPasswordManagerSheet = true },
+                                            onOpenTabs = { showTabsOverview = true },
+                                            onOpenMenu = { showBrowserMenu = true }
+                                        )
+                                    }
                                 }
                             },
                             snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -244,10 +261,43 @@ class MainActivity : ComponentActivity() {
                             Box(
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .padding(innerPadding)
+                                    .padding(if (settings.fullscreenMode) PaddingValues(0.dp) else innerPadding)
                                     .background(MaterialTheme.colorScheme.background)
                             ) {
-                                if (activeTab.url.startsWith("globe://") || activeTab.url.isBlank()) {
+                                if (settings.readerModeEnabled && readerArticle != null) {
+                                    // Full Distraction-Free Reading Mode
+                                    ReaderModeView(
+                                        article = readerArticle!!,
+                                        settings = settings,
+                                        onUpdateSettings = { s -> browserViewModel.updateSettings(s) },
+                                        onClose = { browserViewModel.closeReaderMode() }
+                                    )
+                                } else if (activeTab.url == "globe://extensions-store" || activeTab.url == "globe://webstore") {
+                                    // Real Chrome Web Store with Preview, Reviews, Settings, and Create
+                                    ExtensionStoreView(
+                                        storeExtensions = storeExtensions,
+                                        installedExtensions = extensions,
+                                        onInstallExtension = { item -> browserViewModel.installStoreExtension(item) },
+                                        onUninstallExtension = { id -> browserViewModel.uninstallExtension(id) },
+                                        onCreateCustomExtension = { name, desc, cat, script ->
+                                            browserViewModel.createCustomExtension(name, desc, cat, script)
+                                        },
+                                        onAddReview = { id, author, rating, comment ->
+                                            browserViewModel.addStoreReview(id, author, rating, comment)
+                                        },
+                                        onCloseTab = { browserViewModel.closeTab(activeTab.id) }
+                                    )
+                                } else if (activeTab.url == "globe://downloads") {
+                                    // Downloads Manager Page
+                                    DownloadsManagerSheet(
+                                        downloads = downloads,
+                                        onPauseDownload = { id -> browserViewModel.pauseDownload(id) },
+                                        onResumeDownload = { id -> browserViewModel.resumeDownload(id) },
+                                        onDeleteDownload = { id -> browserViewModel.deleteDownload(id) },
+                                        onClearFinishedDownloads = { browserViewModel.clearFinishedDownloads() },
+                                        onDismiss = { browserViewModel.goHome() }
+                                    )
+                                } else if (activeTab.url.startsWith("globe://") || activeTab.url.isBlank()) {
                                     // Render New Tab Page (Speed Dial)
                                     NewTabPage(
                                         settings = settings,
@@ -278,8 +328,28 @@ class MainActivity : ComponentActivity() {
                                         onNavigationStateChange = { canBack, canFwd -> browserViewModel.updateTabNavigation(activeTab.id, canBack, canFwd) },
                                         onTrackerBlocked = { domain, cat -> browserViewModel.logBlockedTracker(domain, cat) },
                                         onWebViewCreated = { wv -> webViewRef = wv },
-                                        onOpenPasswordManager = { showPasswordManagerSheet = true }
+                                        onOpenPasswordManager = { showPasswordManagerSheet = true },
+                                        onDownloadRequested = { url, contentDisposition, contentLength, mimeType ->
+                                            browserViewModel.startDownload(url, contentDisposition, contentLength, mimeType)
+                                            showDownloadsSheet = true
+                                            Toast.makeText(context, "Download started...", Toast.LENGTH_SHORT).show()
+                                        }
                                     )
+                                }
+
+                                // Floating Exit Fullscreen pill when in fullscreen mode
+                                if (settings.fullscreenMode) {
+                                    FloatingActionButton(
+                                        onClick = { browserViewModel.toggleFullscreen() },
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(16.dp)
+                                            .size(46.dp),
+                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                        contentColor = MaterialTheme.colorScheme.onSurface
+                                    ) {
+                                        Icon(Icons.Default.FullscreenExit, contentDescription = "Exit Fullscreen", modifier = Modifier.size(22.dp))
+                                    }
                                 }
                             }
 
@@ -491,8 +561,11 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onOpenLens = { showGoogleLens = true },
                                     onToggleReaderMode = {
-                                        browserViewModel.toggleReaderMode()
-                                        Toast.makeText(context, if (settings.readerModeEnabled) "Reader mode turned off" else "Reader mode enabled", Toast.LENGTH_SHORT).show()
+                                        if (settings.readerModeEnabled) {
+                                            browserViewModel.closeReaderMode()
+                                        } else {
+                                            browserViewModel.loadReaderForCurrentTab(activeTab.title, activeTab.url)
+                                        }
                                     },
                                     onFindInPage = {
                                         showSearchOverlay = true
@@ -518,7 +591,9 @@ class MainActivity : ComponentActivity() {
                                         showBookmarksHistory = true
                                     },
                                     onOpenFileLab = { showFileLab = true },
+                                    onOpenDownloads = { showDownloadsSheet = true },
                                     onOpenExtensions = { showExtensions = true },
+                                    onOpenStoreTab = { browserViewModel.openStoreTab() },
                                     onOpenAccounts = { showAccounts = true },
                                     onOpenPasswordVault = { showPasswordManagerSheet = true },
                                     onOpenPrivacy = { showPrivacyDashboard = true },
@@ -530,6 +605,7 @@ class MainActivity : ComponentActivity() {
                                         webViewRef?.reload()
                                         Toast.makeText(context, if (!current) "Requesting desktop site" else "Requesting mobile site", Toast.LENGTH_SHORT).show()
                                     },
+                                    onToggleFullscreen = { browserViewModel.toggleFullscreen() },
                                     onShare = {
                                         val sendIntent = Intent().apply {
                                             action = Intent.ACTION_SEND
@@ -539,6 +615,17 @@ class MainActivity : ComponentActivity() {
                                         context.startActivity(Intent.createChooser(sendIntent, "Share Webpage"))
                                     },
                                     onDismiss = { showBrowserMenu = false }
+                                )
+                            }
+
+                            if (showDownloadsSheet) {
+                                DownloadsManagerSheet(
+                                    downloads = downloads,
+                                    onPauseDownload = { id -> browserViewModel.pauseDownload(id) },
+                                    onResumeDownload = { id -> browserViewModel.resumeDownload(id) },
+                                    onDeleteDownload = { id -> browserViewModel.deleteDownload(id) },
+                                    onClearFinishedDownloads = { browserViewModel.clearFinishedDownloads() },
+                                    onDismiss = { showDownloadsSheet = false }
                                 )
                             }
 

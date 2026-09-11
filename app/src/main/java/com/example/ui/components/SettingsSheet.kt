@@ -554,6 +554,57 @@ fun SettingsSheet(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
+                                    Text("Full Screen Browsing", fontWeight = FontWeight.SemiBold)
+                                    Text("Hide top address bar & bottom navigation to maximize viewing area", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.fullscreenMode,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(fullscreenMode = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Older & Low-RAM Device Optimization", fontWeight = FontWeight.SemiBold)
+                                    Text("Optimized pipeline for Realme Note 60, Redmi 5, iPhone 5/6 and low memory chipsets", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.liteModeEnabled,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(liteModeEnabled = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Super Cache & Fast Reload", fontWeight = FontWeight.SemiBold)
+                                    Text("Aggressive static asset caching to prevent re-downloads on slow connections", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.superCacheEnabled,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(superCacheEnabled = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text("Smart Back Navigation", fontWeight = FontWeight.SemiBold)
                                     Text("Back button traverses webpage history first before returning to home", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }

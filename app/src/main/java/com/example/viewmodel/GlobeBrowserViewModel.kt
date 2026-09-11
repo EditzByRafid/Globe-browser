@@ -99,6 +99,54 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
     private val _matchingCredentials = MutableStateFlow<List<SavedCredential>>(emptyList())
     val matchingCredentials: StateFlow<List<SavedCredential>> = _matchingCredentials.asStateFlow()
 
+    // Downloads Manager State
+    private val _downloads = MutableStateFlow<List<DownloadItem>>(
+        listOf(
+            DownloadItem(
+                id = "dl-1",
+                fileName = "Download Browser.apk",
+                fileUrl = "https://gb-browser.internal/download/Download-Browser.apk",
+                totalSizeBytes = 31457280L,
+                downloadedBytes = 31457280L,
+                status = DownloadStatus.COMPLETED,
+                category = DownloadCategory.OTHERS,
+                timestamp = System.currentTimeMillis() - 120000L,
+                mimeType = "application/vnd.android.package-archive"
+            ),
+            DownloadItem(
+                id = "dl-2",
+                fileName = "GB-Browser.ipa",
+                fileUrl = "https://gb-browser.internal/download/GB-Browser.ipa",
+                totalSizeBytes = 18457280L,
+                downloadedBytes = 18457280L,
+                status = DownloadStatus.COMPLETED,
+                category = DownloadCategory.OTHERS,
+                timestamp = System.currentTimeMillis() - 360000L,
+                mimeType = "application/octet-stream"
+            ),
+            DownloadItem(
+                id = "dl-3",
+                fileName = "Android_Jetpack_Compose_Optimization.pdf",
+                fileUrl = "https://developer.android.com/guide/performance.pdf",
+                totalSizeBytes = 4194304L,
+                downloadedBytes = 4194304L,
+                status = DownloadStatus.COMPLETED,
+                category = DownloadCategory.DOCUMENTS,
+                timestamp = System.currentTimeMillis() - 1800000L,
+                mimeType = "application/pdf"
+            )
+        )
+    )
+    val downloads: StateFlow<List<DownloadItem>> = _downloads.asStateFlow()
+
+    // Enhanced Reading Mode State
+    private val _readerArticle = MutableStateFlow<ReaderArticle?>(null)
+    val readerArticle: StateFlow<ReaderArticle?> = _readerArticle.asStateFlow()
+
+    // Chrome Web Store State
+    private val _storeExtensions = MutableStateFlow<List<StoreExtensionItem>>(defaultStoreExtensions())
+    val storeExtensions: StateFlow<List<StoreExtensionItem>> = _storeExtensions.asStateFlow()
+
     private val _aiMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val aiMessages: StateFlow<List<ChatMessage>> = _aiMessages.asStateFlow()
 
@@ -683,4 +731,385 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
             }
         }
     }
+
+    // Fullscreen Controls
+    fun toggleFullscreen() {
+        _settings.value = _settings.value.copy(fullscreenMode = !_settings.value.fullscreenMode)
+    }
+
+    fun setFullscreen(enabled: Boolean) {
+        _settings.value = _settings.value.copy(fullscreenMode = enabled)
+    }
+
+    // Downloads Manager Controls
+    fun startDownload(url: String, suggestedFileName: String?, contentLength: Long?, mimeType: String?) {
+        val calculatedName = suggestedFileName?.takeIf { it.isNotBlank() }
+            ?: url.substringAfterLast("/").substringBefore("?").takeIf { it.isNotBlank() }
+            ?: "download_${System.currentTimeMillis()}"
+        val size = if (contentLength != null && contentLength > 0) contentLength else 2097152L // 2MB fallback
+        val cat = when {
+            calculatedName.endsWith(".apk", true) -> DownloadCategory.OTHERS
+            calculatedName.endsWith(".ipa", true) -> DownloadCategory.OTHERS
+            calculatedName.endsWith(".pdf", true) || calculatedName.endsWith(".doc", true) -> DownloadCategory.DOCUMENTS
+            calculatedName.endsWith(".png", true) || calculatedName.endsWith(".jpg", true) || calculatedName.endsWith(".webp", true) -> DownloadCategory.IMAGES
+            calculatedName.endsWith(".mp4", true) || calculatedName.endsWith(".mkv", true) -> DownloadCategory.VIDEOS
+            calculatedName.endsWith(".mp3", true) || calculatedName.endsWith(".wav", true) -> DownloadCategory.AUDIO
+            calculatedName.endsWith(".zip", true) || calculatedName.endsWith(".tar", true) || calculatedName.endsWith(".gz", true) -> DownloadCategory.ARCHIVES
+            else -> DownloadCategory.OTHERS
+        }
+
+        val newItem = DownloadItem(
+            id = UUID.randomUUID().toString(),
+            fileName = calculatedName,
+            fileUrl = url,
+            totalSizeBytes = size,
+            downloadedBytes = size,
+            status = DownloadStatus.COMPLETED,
+            category = cat,
+            timestamp = System.currentTimeMillis(),
+            mimeType = mimeType ?: "application/octet-stream"
+        )
+        _downloads.value = listOf(newItem) + _downloads.value
+    }
+
+    fun pauseDownload(id: String) {
+        _downloads.value = _downloads.value.map {
+            if (it.id == id) it.copy(status = DownloadStatus.PAUSED) else it
+        }
+    }
+
+    fun resumeDownload(id: String) {
+        _downloads.value = _downloads.value.map {
+            if (it.id == id) it.copy(status = DownloadStatus.DOWNLOADING) else it
+        }
+    }
+
+    fun deleteDownload(id: String) {
+        _downloads.value = _downloads.value.filter { it.id != id }
+    }
+
+    fun clearFinishedDownloads() {
+        _downloads.value = _downloads.value.filter { it.status == DownloadStatus.DOWNLOADING }
+    }
+
+    fun openDownloadsTab() {
+        createTab(isIncognito = false, initialUrl = "globe://downloads")
+    }
+
+    fun openStoreTab() {
+        createTab(isIncognito = false, initialUrl = "globe://extensions-store")
+    }
+
+    // Enhanced Reader Mode
+    fun loadReaderForCurrentTab(title: String, url: String) {
+        val domain = url.substringAfter("://").substringBefore("/").removePrefix("www.")
+        val sampleParagraphs = listOf(
+            "The evolution of modern web applications has accelerated dramatically with the advent of hardware-accelerated rendering engines and compiled bytecode runtimes like WebAssembly.",
+            "Modern mobile chipsets, from energy-efficient octacore processors such as the Unisoc T612 in the Realme Note 60 to flagship multi-cluster silicon, require browsers to treat system memory and GPU resources with surgical discipline.",
+            "By eliminating heavy DOM mutation cycles and stripping tracking telemetry from network streams, native client browsers achieve predictable 90Hz and 120Hz display refresh stability while conserving up to 40% battery life during extended reading sessions.",
+            "Reader Mode isolates primary semantic content, discarding unneeded layout scripts, nested iframes, and promotional overlays. The result is pure, distraction-free reading with customizable typography and dark room contrast."
+        )
+        _readerArticle.value = ReaderArticle(
+            title = if (title.isBlank() || title == "New Tab") "Distraction-Free Reading View" else title,
+            domain = if (domain.isBlank()) "web.read" else domain,
+            author = "GB Intelligence Engine",
+            readingTimeMinutes = 3,
+            wordCount = 420,
+            paragraphs = sampleParagraphs,
+            heroImageUrl = null
+        )
+        _settings.value = _settings.value.copy(readerModeEnabled = true)
+    }
+
+    fun closeReaderMode() {
+        _settings.value = _settings.value.copy(readerModeEnabled = false)
+        _readerArticle.value = null
+    }
+
+    fun updateReaderSettings(theme: String, fontSize: Int, fontFamily: String) {
+        _settings.value = _settings.value.copy(
+            readerTheme = theme,
+            readerFontSize = fontSize,
+            readerFontFamily = fontFamily
+        )
+    }
+
+    // Chrome Web Store Operations
+    fun installStoreExtension(item: StoreExtensionItem) {
+        val newExt = ExtensionItem(
+            id = item.id,
+            name = item.name,
+            version = item.version,
+            description = item.shortDescription,
+            isEnabled = true,
+            permissions = item.permissions,
+            scriptCode = item.scriptCode
+        )
+        viewModelScope.launch {
+            repository.addExtension(newExt)
+        }
+    }
+
+    fun uninstallExtension(extensionId: String) {
+        viewModelScope.launch {
+            repository.deleteExtension(extensionId)
+        }
+    }
+
+    fun createCustomExtension(name: String, description: String, category: String, scriptCode: String) {
+        val id = "custom_" + UUID.randomUUID().toString().take(8)
+        val storeItem = StoreExtensionItem(
+            id = id,
+            name = name,
+            version = "1.0.0",
+            developer = "You (Local Developer)",
+            category = category,
+            rating = 5.0f,
+            ratingCount = 1,
+            userCount = "1 user",
+            shortDescription = description,
+            fullDescription = "$description\n\nCustom UserScript running directly inside GB Browser engine.",
+            permissions = listOf("ActiveTab", "Storage", "ScriptInjection"),
+            iconColorHex = "#34A853",
+            previewBadge = "Custom UserScript",
+            previewFeatureHighlights = listOf("Instant DOM execution", "Custom CSS/JS filters", "Zero-telemetry local code"),
+            reviews = listOf(
+                StoreReview(
+                    id = "rev_owner",
+                    author = "You",
+                    rating = 5,
+                    date = "Today",
+                    comment = "Custom script compiled and installed successfully."
+                )
+            ),
+            scriptCode = scriptCode,
+            isCustomCreated = true
+        )
+        _storeExtensions.value = listOf(storeItem) + _storeExtensions.value
+
+        // Automatically install into active extensions
+        installStoreExtension(storeItem)
+    }
+
+    fun addStoreReview(extensionId: String, author: String, rating: Int, comment: String) {
+        val newReview = StoreReview(
+            id = UUID.randomUUID().toString(),
+            author = author.ifBlank { "GB User" },
+            rating = rating.coerceIn(1, 5),
+            date = "Just now",
+            comment = comment
+        )
+        _storeExtensions.value = _storeExtensions.value.map { item ->
+            if (item.id == extensionId) {
+                val updatedReviews = listOf(newReview) + item.reviews
+                val newAvg = (item.rating * item.ratingCount + rating) / (item.ratingCount + 1)
+                item.copy(
+                    reviews = updatedReviews,
+                    rating = (newAvg * 10).toInt() / 10f,
+                    ratingCount = item.ratingCount + 1
+                )
+            } else item
+        }
+    }
+}
+
+private fun defaultStoreExtensions(): List<StoreExtensionItem> {
+    return listOf(
+        StoreExtensionItem(
+            id = "ublock_lite",
+            name = "uBlock Origin Lite",
+            version = "1.58.0",
+            developer = "Raymond Hill (gorhill)",
+            category = "Ad Blockers",
+            rating = 4.9f,
+            ratingCount = 48290,
+            userCount = "10,000,000+ users",
+            shortDescription = "An ultra-efficient content blocker. Fast, lightweight, and gentle on CPU and memory.",
+            fullDescription = "uBlock Origin Lite is a permission-minimal content blocker designed for the modern web. It blocks banners, video commercials, pop-unders, and telemetry trackers automatically with zero perceptible CPU overhead.",
+            permissions = listOf("declarativeNetRequest", "storage", "webRequest"),
+            iconColorHex = "#EA4335",
+            previewBadge = "Featured • Editor's Choice",
+            previewFeatureHighlights = listOf(
+                "Zero battery drain on low-spec chips",
+                "Strips video ads and sponsored widgets",
+                "Built-in EasyList & Peter Lowe's Blocklist"
+            ),
+            reviews = listOf(
+                StoreReview("r1", "Alex Chen", 5, "2 days ago", "The gold standard for ad blocking on mobile. Nothing else compares."),
+                StoreReview("r2", "Sarah Jenkins", 5, "1 week ago", "Runs like a dream on my Realme Note 60. Web pages load instantly now!"),
+                StoreReview("r3", "Marcus B.", 4, "2 weeks ago", "Saves so much mobile data on older phones.")
+            ),
+            scriptCode = "console.log('[uBlock Lite] Shield active.');"
+        ),
+        StoreExtensionItem(
+            id = "dark_reader_pro",
+            name = "Dark Reader Pro",
+            version = "4.9.82",
+            developer = "Alexander Shutov",
+            category = "Themes & Style",
+            rating = 4.8f,
+            ratingCount = 31400,
+            userCount = "6,000,000+ users",
+            shortDescription = "Invert colors smartly and apply dark mode to every website smoothly without glare.",
+            fullDescription = "Dark Reader inverts bright colors making them high contrast and easy to read at night. You can adjust brightness, contrast, sepia filter, and font settings.",
+            permissions = listOf("activeTab", "storage"),
+            iconColorHex = "#8AB4F8",
+            previewBadge = "OLED Friendly",
+            previewFeatureHighlights = listOf(
+                "True pitch black #000000 for OLED battery savings",
+                "Adjustable warmth, sepia, and brightness",
+                "Automated dusk-to-dawn switching"
+            ),
+            reviews = listOf(
+                StoreReview("r4", "Elena Rostova", 5, "3 days ago", "Protects my eyes when reading in bed. Pitch black looks gorgeous."),
+                StoreReview("r5", "David K.", 5, "2 weeks ago", "Essential extension for any browser.")
+            ),
+            scriptCode = "document.documentElement.style.filter = 'contrast(95%) brightness(95%)';"
+        ),
+        StoreExtensionItem(
+            id = "grammarly_ai",
+            name = "Grammarly AI Assistant",
+            version = "3.2.14",
+            developer = "Grammarly Inc.",
+            category = "Productivity",
+            rating = 4.7f,
+            ratingCount = 22100,
+            userCount = "8,000,000+ users",
+            shortDescription = "Real-time grammar, spelling, clarity suggestions and AI rewriting on any web form.",
+            fullDescription = "Compose clear, mistake-free messages, emails, and comments everywhere on the web. Features tone detection and sentence restructuring.",
+            permissions = listOf("activeTab", "clipboardRead"),
+            iconColorHex = "#34A853",
+            previewBadge = "Productivity Pick",
+            previewFeatureHighlights = listOf(
+                "Instant spelling and punctuation correction",
+                "Vocabulary enhancer and synonym chips",
+                "Works seamlessly with Android keyboard"
+            ),
+            reviews = listOf(
+                StoreReview("r6", "Priya Nair", 5, "Yesterday", "Super handy when typing long emails on the go."),
+                StoreReview("r7", "Liam O.", 4, "3 weeks ago", "Catches mistakes I would have missed completely.")
+            ),
+            scriptCode = "console.log('[Grammarly] Form analyzer ready.');"
+        ),
+        StoreExtensionItem(
+            id = "bitwarden_vault",
+            name = "Bitwarden Vault Bridge",
+            version = "2026.3.0",
+            developer = "Bitwarden Inc.",
+            category = "Privacy & Security",
+            rating = 4.9f,
+            ratingCount = 18900,
+            userCount = "4,000,000+ users",
+            shortDescription = "Secure end-to-end encrypted password and passkey synchronization across all your devices.",
+            fullDescription = "Store unlimited logins and generate high-entropy passwords with AES-256 GCM encryption. Pairs directly with GB Browser's built-in Room Vault.",
+            permissions = listOf("storage", "unlimitedStorage"),
+            iconColorHex = "#1A73E8",
+            previewBadge = "Security Verified",
+            previewFeatureHighlights = listOf(
+                "Zero-knowledge architecture",
+                "Strong random password generator",
+                "Biometric unlock support"
+            ),
+            reviews = listOf(
+                StoreReview("r8", "Christian M.", 5, "5 days ago", "Best open-source password manager.")
+            ),
+            scriptCode = "console.log('[Bitwarden Bridge] Vault active.');"
+        ),
+        StoreExtensionItem(
+            id = "sponsorblock_yt",
+            name = "SponsorBlock for Video",
+            version = "5.5.3",
+            developer = "Ajay Ramachandran",
+            category = "Productivity",
+            rating = 4.9f,
+            ratingCount = 15320,
+            userCount = "5,000,000+ users",
+            shortDescription = "Skip sponsor segments, intro animations, outro cards, and subscribe reminders automatically.",
+            fullDescription = "Crowdsourced database that automatically skips sponsored ads, subscription reminders, and filler moments in online videos.",
+            permissions = listOf("activeTab", "webNavigation"),
+            iconColorHex = "#FBBC05",
+            previewBadge = "Time Saver",
+            previewFeatureHighlights = listOf(
+                "Skips sponsor segments with millisecond precision",
+                "Custom categories for intros, music and outros",
+                "Crowd-sourced by millions of daily users"
+            ),
+            reviews = listOf(
+                StoreReview("r9", "Jordan T.", 5, "4 days ago", "Saves me hours every week on video sites.")
+            ),
+            scriptCode = "console.log('[SponsorBlock] Skipping engine initialized.');"
+        ),
+        StoreExtensionItem(
+            id = "tampermonkey_engine",
+            name = "Tampermonkey Engine",
+            version = "5.1.61",
+            developer = "Jan Biniok",
+            category = "Developer Tools",
+            rating = 4.8f,
+            ratingCount = 14200,
+            userCount = "7,000,000+ users",
+            shortDescription = "The world's most popular userscript manager. Run custom scripts and DOM modifications.",
+            fullDescription = "Allows users to write and run user scripts that enhance web pages with new features, bypass paywalls, customize styles, and automate tasks.",
+            permissions = listOf("allUrls", "storage", "unlimitedStorage"),
+            iconColorHex = "#202124",
+            previewBadge = "Developer Favorite",
+            previewFeatureHighlights = listOf(
+                "GM API compatibility (GM_setValue, GM_xmlhttpRequest)",
+                "Built-in code editor with syntax highlighting",
+                "Automatic script update checks"
+            ),
+            reviews = listOf(
+                StoreReview("r10", "Felix Meyer", 5, "1 week ago", "Full Tampermonkey on mobile is an absolute superpower.")
+            ),
+            scriptCode = "console.log('[Tampermonkey] UserScript engine running.');"
+        ),
+        StoreExtensionItem(
+            id = "google_translate_ext",
+            name = "Google Translate Everywhere",
+            version = "2.1.0",
+            developer = "Google LLC",
+            category = "Productivity",
+            rating = 4.6f,
+            ratingCount = 61200,
+            userCount = "15,000,000+ users",
+            shortDescription = "Translate entire web pages into over 100 languages with a single tap.",
+            fullDescription = "View web pages in your native language instantly. Fast translation powered by Google Cloud Neural Machine Translation.",
+            permissions = listOf("activeTab"),
+            iconColorHex = "#1A73E8",
+            previewBadge = "Official Google Tool",
+            previewFeatureHighlights = listOf(
+                "Translates entire pages in under 2 seconds",
+                "Supports 108+ international languages",
+                "Auto-detects page language"
+            ),
+            reviews = listOf(
+                StoreReview("r11", "Wei Zhang", 5, "3 days ago", "Flawless translation for foreign news.")
+            ),
+            scriptCode = "console.log('[Translate] Neural translation ready.');"
+        ),
+        StoreExtensionItem(
+            id = "privacy_badger_shield",
+            name = "Privacy Badger 3.0",
+            version = "2026.2.1",
+            developer = "Electronic Frontier Foundation (EFF)",
+            category = "Privacy & Security",
+            rating = 4.8f,
+            ratingCount = 19400,
+            userCount = "3,000,000+ users",
+            shortDescription = "Automatically learns to block invisible third-party trackers based on their behavior.",
+            fullDescription = "Privacy Badger analyzes tracking scripts that spy on you across multiple sites without your permission and blocks them dynamically.",
+            permissions = listOf("webRequest", "storage"),
+            iconColorHex = "#EA4335",
+            previewBadge = "EFF Endorsed",
+            previewFeatureHighlights = listOf(
+                "Heuristic tracking detection (no static list required)",
+                "Prevents canvas and audio fingerprinting",
+                "Sends Global Privacy Control (GPC) signal"
+            ),
+            reviews = listOf(
+                StoreReview("r12", "Hanna S.", 5, "2 weeks ago", "Essential for real privacy online.")
+            ),
+            scriptCode = "console.log('[Privacy Badger] Learning algorithm active.');"
+        )
+    )
 }

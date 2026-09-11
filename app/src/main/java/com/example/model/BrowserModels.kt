@@ -135,7 +135,12 @@ data class BrowserSettings(
     val autoClearCacheOnExit: Boolean = false,
     val buttonNavigationEnabled: Boolean = true, // Bottom navigation bar compatibility for one-handed operation
     val autofillEnabled: Boolean = true, // Auto-detect and autofill credentials on login forms
-    val backButtonHistoryFirst: Boolean = true // System / button back navigates browser history before home
+    val backButtonHistoryFirst: Boolean = true, // System / button back navigates browser history before home
+    val fullscreenMode: Boolean = false, // True fullscreen immersive browsing
+    val readerTheme: String = "SEPIA", // "LIGHT", "SEPIA", "DARK", "OLED"
+    val readerFontSize: Int = 18, // 14 to 28sp
+    val readerFontFamily: String = "SERIF", // "SERIF", "SANS", "MONO"
+    val superCacheEnabled: Boolean = true // Ultra cache compression & instant RAM trim for older/lite devices
 )
 
 data class SavedCredential(
@@ -206,6 +211,48 @@ data class DownloadItem(
     val timestamp: Long = System.currentTimeMillis(),
     val mimeType: String = "application/octet-stream",
     val threadsCount: Int = 8
+) {
+    val progressFraction: Float
+        get() = if (totalSizeBytes > 0) (downloadedBytes.toFloat() / totalSizeBytes).coerceIn(0f, 1f) else 0f
+}
+
+data class StoreReview(
+    val id: String,
+    val author: String,
+    val rating: Int,
+    val date: String,
+    val comment: String
 )
+
+data class StoreExtensionItem(
+    val id: String,
+    val name: String,
+    val version: String,
+    val developer: String,
+    val category: String, // "Privacy & Security", "Ad Blockers", "Productivity", "Themes & Style", "Developer Tools"
+    val rating: Float,
+    val ratingCount: Int,
+    val userCount: String,
+    val shortDescription: String,
+    val fullDescription: String,
+    val permissions: List<String>,
+    val iconColorHex: String,
+    val previewBadge: String,
+    val previewFeatureHighlights: List<String>,
+    val reviews: List<StoreReview>,
+    val scriptCode: String,
+    val isCustomCreated: Boolean = false
+)
+
+data class ReaderArticle(
+    val title: String,
+    val domain: String,
+    val author: String? = null,
+    val readingTimeMinutes: Int = 3,
+    val wordCount: Int = 650,
+    val paragraphs: List<String> = emptyList(),
+    val heroImageUrl: String? = null
+)
+
 
 

@@ -40,13 +40,16 @@ fun BrowserMenuSheet(
     onOpenReadingList: () -> Unit = {},
     onOpenHistory: () -> Unit,
     onOpenFileLab: () -> Unit,
+    onOpenDownloads: () -> Unit = {},
     onOpenExtensions: () -> Unit,
+    onOpenStoreTab: () -> Unit = {},
     onOpenAccounts: () -> Unit = {},
     onOpenPasswordVault: () -> Unit = {},
     onOpenPrivacy: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMaps: () -> Unit,
     onToggleDesktopMode: () -> Unit,
+    onToggleFullscreen: () -> Unit = {},
     onShare: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -206,13 +209,13 @@ fun BrowserMenuSheet(
             }
 
 
-            ChromeMenuItem(icon = Icons.Default.FileDownload, title = "Downloads & Offline Files") {
-                onOpenFileLab()
+            ChromeMenuItem(icon = Icons.Default.Download, title = "Downloads") {
+                onOpenDownloads()
                 onDismiss()
             }
 
-            ChromeMenuItem(icon = Icons.Default.Extension, title = "Extensions") {
-                onOpenExtensions()
+            ChromeMenuItem(icon = Icons.Default.Extension, title = "Chrome Web Store & Extensions") {
+                onOpenStoreTab()
                 onDismiss()
             }
 
@@ -237,6 +240,40 @@ fun BrowserMenuSheet(
             ) {
                 onToggleReaderMode()
                 onDismiss()
+            }
+
+            // Fullscreen Mode Toggle
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable {
+                        onToggleFullscreen()
+                        onDismiss()
+                    }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (settings.fullscreenMode) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(22.dp)
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Text(
+                    text = "Full screen mode",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier.weight(1f)
+                )
+                Checkbox(
+                    checked = settings.fullscreenMode,
+                    onCheckedChange = {
+                        onToggleFullscreen()
+                        onDismiss()
+                    }
+                )
             }
 
             // Desktop Site Toggle (Chrome style with checkbox)
