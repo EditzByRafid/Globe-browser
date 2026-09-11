@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.BrowserSettings
 import com.example.model.TabItem
+import com.example.ui.theme.GlobePalettes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,11 +35,14 @@ fun BrowserMenuSheet(
     onToggleReaderMode: () -> Unit = {},
     onFindInPage: () -> Unit = {},
     onAddBookmark: () -> Unit,
+    onAddToReadingList: () -> Unit = {},
     onOpenBookmarks: () -> Unit,
+    onOpenReadingList: () -> Unit = {},
     onOpenHistory: () -> Unit,
     onOpenFileLab: () -> Unit,
     onOpenExtensions: () -> Unit,
     onOpenAccounts: () -> Unit = {},
+    onOpenPasswordVault: () -> Unit = {},
     onOpenPrivacy: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenMaps: () -> Unit,
@@ -46,6 +50,7 @@ fun BrowserMenuSheet(
     onShare: () -> Unit,
     onDismiss: () -> Unit
 ) {
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -190,6 +195,17 @@ fun BrowserMenuSheet(
                 onDismiss()
             }
 
+            ChromeMenuItem(icon = Icons.Default.MenuBook, title = "Reading List") {
+                onOpenReadingList()
+                onDismiss()
+            }
+
+            ChromeMenuItem(icon = Icons.Default.PlaylistAdd, title = "Add to Reading List") {
+                onAddToReadingList()
+                onDismiss()
+            }
+
+
             ChromeMenuItem(icon = Icons.Default.FileDownload, title = "Downloads & Offline Files") {
                 onOpenFileLab()
                 onDismiss()
@@ -262,10 +278,20 @@ fun BrowserMenuSheet(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
             )
 
+            ChromeMenuItem(
+                icon = Icons.Default.Key,
+                title = "Password Manager & Vault",
+                iconTint = GlobePalettes.ElectricCyan
+            ) {
+                onOpenPasswordVault()
+                onDismiss()
+            }
+
             ChromeMenuItem(icon = Icons.Default.Settings, title = "Settings") {
                 onOpenSettings()
                 onDismiss()
             }
+
 
             ChromeMenuItem(icon = Icons.Default.Place, title = "Google Maps Navigation") {
                 onOpenMaps()

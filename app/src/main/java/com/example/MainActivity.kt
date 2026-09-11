@@ -40,11 +40,15 @@ class MainActivity : ComponentActivity() {
             val tabs by browserViewModel.tabs.collectAsState()
             val activeTabId by browserViewModel.activeTabId.collectAsState()
             val bookmarks by browserViewModel.bookmarks.collectAsState()
+            val readingList by browserViewModel.readingList.collectAsState()
             val history by browserViewModel.history.collectAsState()
+
             val blockedTrackers by browserViewModel.blockedTrackers.collectAsState()
             val totalBlocked by browserViewModel.totalBlocked.collectAsState()
             val extensions by browserViewModel.extensions.collectAsState()
             val accounts by browserViewModel.accounts.collectAsState()
+            val credentials by browserViewModel.credentials.collectAsState()
+            val matchingCredentials by browserViewModel.matchingCredentials.collectAsState()
             val lensImage by browserViewModel.lensImage.collectAsState()
             val lensMode by browserViewModel.lensMode.collectAsState()
             val isLensAnalyzing by browserViewModel.isLensAnalyzing.collectAsState()
@@ -70,6 +74,7 @@ class MainActivity : ComponentActivity() {
             var bookmarksHistoryInitialTab by remember { mutableStateOf(0) }
             var showSettings by remember { mutableStateOf(false) }
             var showBrowserMenu by remember { mutableStateOf(false) }
+            var showPasswordManagerSheet by remember { mutableStateOf(false) }
             var showGoogleMaps by remember { mutableStateOf(false) }
             var showSplashScreen by remember { mutableStateOf(true) }
 
@@ -98,9 +103,11 @@ class MainActivity : ComponentActivity() {
             }
 
             // Hardware Back Button Handler
-            // User requested: "When i click back button i just go back to the home of the app."
+            // User requested: "When i click back button i just go back to the home of the app." / Button navigation compatibility
             BackHandler(enabled = true) {
-                if (showSearchOverlay) {
+                if (showPasswordManagerSheet) {
+                    showPasswordManagerSheet = false
+                } else if (showSearchOverlay) {
                     showSearchOverlay = false
                 } else if (showTabsOverview) {
                     showTabsOverview = false
@@ -123,8 +130,11 @@ class MainActivity : ComponentActivity() {
                 } else if (showGoogleMaps) {
                     showGoogleMaps = false
                 } else if (!activeTab.url.startsWith("globe://") && activeTab.url.isNotBlank()) {
-                    // Navigate directly back to Home (New Tab Page)
-                    browserViewModel.goHome()
+                    if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                        webViewRef?.goBack()
+                    } else {
+                        browserViewModel.goHome()
+                    }
                 } else {
                     finish()
                 }
@@ -153,10 +163,14 @@ class MainActivity : ComponentActivity() {
                                         tab = activeTab,
                                         settings = settings,
                                         tabCount = tabs.size,
+                                        matchingCredentialsCount = matchingCredentials.size,
                                         onNavigate = { query -> browserViewModel.navigate(query) },
                                         onBack = {
-                                            // Back button in bar also takes directly back to Home
-                                            browserViewModel.goHome()
+                                            if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                                                webViewRef?.goBack()
+                                            } else {
+                                                browserViewModel.goHome()
+                                            }
                                         },
                                         onForward = { webViewRef?.goForward() },
                                         onReload = {
@@ -168,6 +182,7 @@ class MainActivity : ComponentActivity() {
                                         onOpenSearchOverlay = { showSearchOverlay = true },
                                         onOpenLens = { showGoogleLens = true },
                                         onOpenMenu = { showBrowserMenu = true },
+                                        onOpenVault = { showPasswordManagerSheet = true },
                                         modifier = Modifier
                                             .statusBarsPadding()
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -180,9 +195,14 @@ class MainActivity : ComponentActivity() {
                                         tab = activeTab,
                                         settings = settings,
                                         tabCount = tabs.size,
+                                        matchingCredentialsCount = matchingCredentials.size,
                                         onNavigate = { query -> browserViewModel.navigate(query) },
                                         onBack = {
-                                            browserViewModel.goHome()
+                                            if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                                                webViewRef?.goBack()
+                                            } else {
+                                                browserViewModel.goHome()
+                                            }
                                         },
                                         onForward = { webViewRef?.goForward() },
                                         onReload = {
@@ -194,9 +214,28 @@ class MainActivity : ComponentActivity() {
                                         onOpenSearchOverlay = { showSearchOverlay = true },
                                         onOpenLens = { showGoogleLens = true },
                                         onOpenMenu = { showBrowserMenu = true },
+                                        onOpenVault = { showPasswordManagerSheet = true },
                                         modifier = Modifier
                                             .navigationBarsPadding()
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                } else if (settings.buttonNavigationEnabled) {
+                                    BottomNavBar(
+                                        tab = activeTab,
+                                        tabsCount = tabs.size,
+                                        matchingCredentialsCount = matchingCredentials.size,
+                                        onBack = {
+                                            if (settings.backButtonHistoryFirst && webViewRef?.canGoBack() == true) {
+                                                webViewRef?.goBack()
+                                            } else {
+                                                browserViewModel.goHome()
+                                            }
+                                        },
+                                        onForward = { webViewRef?.goForward() },
+                                        onHome = { browserViewModel.goHome() },
+                                        onOpenVault = { showPasswordManagerSheet = true },
+                                        onOpenTabs = { showTabsOverview = true },
+                                        onOpenMenu = { showBrowserMenu = true }
                                     )
                                 }
                             },
@@ -232,12 +271,14 @@ class MainActivity : ComponentActivity() {
                                         tab = activeTab,
                                         browserSettings = settings,
                                         activeExtensions = extensions.filter { it.isEnabled },
+                                        matchingCredentials = matchingCredentials,
                                         onUrlChange = { newUrl -> browserViewModel.updateTabUrl(activeTab.id, newUrl) },
                                         onTitleChange = { newTitle -> browserViewModel.updateTabTitle(activeTab.id, newTitle) },
                                         onLoadingChange = { loading, prog -> browserViewModel.updateTabLoading(activeTab.id, loading, prog) },
                                         onNavigationStateChange = { canBack, canFwd -> browserViewModel.updateTabNavigation(activeTab.id, canBack, canFwd) },
                                         onTrackerBlocked = { domain, cat -> browserViewModel.logBlockedTracker(domain, cat) },
-                                        onWebViewCreated = { wv -> webViewRef = wv }
+                                        onWebViewCreated = { wv -> webViewRef = wv },
+                                        onOpenPasswordManager = { showPasswordManagerSheet = true }
                                     )
                                 }
                             }
@@ -394,19 +435,29 @@ class MainActivity : ComponentActivity() {
                                     initialTab = bookmarksHistoryInitialTab,
                                     settings = settings,
                                     bookmarks = bookmarks,
+                                    readingList = readingList,
                                     history = history,
                                     onOpenUrl = { url -> browserViewModel.navigate(url) },
                                     onDeleteBookmark = { id -> browserViewModel.deleteBookmark(id) },
+                                    onToggleReadingListRead = { id -> browserViewModel.toggleReadingListRead(id) },
+                                    onDeleteReadingListItem = { id -> browserViewModel.deleteReadingListItem(id) },
                                     onClearHistory = { browserViewModel.clearHistory() },
                                     onDismiss = { showBookmarksHistory = false }
                                 )
                             }
 
+
                             if (showSettings) {
                                 SettingsSheet(
                                     settings = settings,
                                     onUpdateSettings = { s -> browserViewModel.updateSettings(s) },
+                                    savedPasswordsCount = credentials.size,
+                                    onOpenPasswordVault = { showPasswordManagerSheet = true },
+                                    onClearAllPasswords = { browserViewModel.clearAllCredentials() },
                                     onToggleSearchEngine = { engineName -> browserViewModel.toggleSearchEngine(engineName) },
+                                    onClearCacheAndCookies = { onDone ->
+                                        browserViewModel.clearCacheAndCookies(onDone)
+                                    },
                                     onClearAllData = {
                                         browserViewModel.panicWipe()
                                         Toast.makeText(context, "Cleared all browsing data & cache", Toast.LENGTH_SHORT).show()
@@ -450,17 +501,26 @@ class MainActivity : ComponentActivity() {
                                         browserViewModel.addCurrentPageBookmark()
                                         Toast.makeText(context, "Page added to bookmarks", Toast.LENGTH_SHORT).show()
                                     },
+                                    onAddToReadingList = {
+                                        browserViewModel.addCurrentPageToReadingList()
+                                        Toast.makeText(context, "Saved to Reading List for offline", Toast.LENGTH_SHORT).show()
+                                    },
                                     onOpenBookmarks = {
                                         bookmarksHistoryInitialTab = 0
                                         showBookmarksHistory = true
                                     },
-                                    onOpenHistory = {
+                                    onOpenReadingList = {
                                         bookmarksHistoryInitialTab = 1
+                                        showBookmarksHistory = true
+                                    },
+                                    onOpenHistory = {
+                                        bookmarksHistoryInitialTab = 2
                                         showBookmarksHistory = true
                                     },
                                     onOpenFileLab = { showFileLab = true },
                                     onOpenExtensions = { showExtensions = true },
                                     onOpenAccounts = { showAccounts = true },
+                                    onOpenPasswordVault = { showPasswordManagerSheet = true },
                                     onOpenPrivacy = { showPrivacyDashboard = true },
                                     onOpenSettings = { showSettings = true },
                                     onOpenMaps = { showGoogleMaps = true },
@@ -486,6 +546,30 @@ class MainActivity : ComponentActivity() {
                                 GoogleSplashScreen(
                                     theme = settings.theme,
                                     onDismiss = { showSplashScreen = false }
+                                )
+                            }
+
+                            if (showPasswordManagerSheet) {
+                                PasswordManagerSheet(
+                                    settings = settings,
+                                    credentials = credentials,
+                                    currentSiteUrl = activeTab.url,
+                                    onSaveCredential = { dom, tit, user, pass ->
+                                        browserViewModel.saveCredential(dom, tit, user, pass)
+                                    },
+                                    onUpdateCredential = { id, dom, tit, user, pass ->
+                                        browserViewModel.updateCredential(id, dom, tit, user, pass)
+                                    },
+                                    onDeleteCredential = { id ->
+                                        browserViewModel.deleteCredential(id)
+                                    },
+                                    onClearAllCredentials = {
+                                        browserViewModel.clearAllCredentials()
+                                    },
+                                    onToggleAutofill = { enabled ->
+                                        browserViewModel.updateSettings(settings.copy(autofillEnabled = enabled))
+                                    },
+                                    onDismiss = { showPasswordManagerSheet = false }
                                 )
                             }
                         }

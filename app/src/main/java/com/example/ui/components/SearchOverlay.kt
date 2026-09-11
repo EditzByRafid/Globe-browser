@@ -1,8 +1,14 @@
 package com.example.ui.components
 
+import android.app.Activity
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +65,19 @@ fun SearchOverlay(
     val focusRequester = remember { FocusRequester() }
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+
+    // Voice Search Speech Recognizer Launcher
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                searchText = spokenText
+                onNavigate(spokenText)
+            }
+        }
+    }
 
     // Check clipboard for quick URL paste
     val clipboardManager = remember {
@@ -231,6 +250,31 @@ fun SearchOverlay(
                             imageVector = Icons.Default.CameraAlt,
                             contentDescription = "Google Lens",
                             tint = Color(0xFF4285F4),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+
+                    // Voice Search Button (Google Chrome style Mic)
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_WEB_SEARCH)
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to search...")
+                            }
+                            try {
+                                speechLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                Toast.makeText(context, "Voice search is not available on this device", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier
+                            .size(42.dp)
+                            .testTag("search_overlay_mic_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = "Voice Search",
+                            tint = Color(0xFFEA4335),
                             modifier = Modifier.size(22.dp)
                         )
                     }

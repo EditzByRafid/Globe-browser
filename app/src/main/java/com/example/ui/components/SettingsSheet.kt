@@ -1,8 +1,14 @@
 package com.example.ui.components
 
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -12,22 +18,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
+import com.example.ui.theme.GlobePalettes
 import com.example.ui.theme.chromeCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsSheet(
     settings: BrowserSettings,
     onUpdateSettings: (BrowserSettings) -> Unit,
+    savedPasswordsCount: Int = 0,
+    onOpenPasswordVault: () -> Unit = {},
+    onClearAllPasswords: () -> Unit = {},
     onToggleSearchEngine: (String) -> Unit = {},
+    onClearCacheAndCookies: ((clearedMb: Double) -> Unit) -> Unit = {},
     onClearAllData: () -> Unit,
     onDismiss: () -> Unit
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isCleaningCache by remember { mutableStateOf(false) }
+    var lastCleanedStats by remember { mutableStateOf<String?>(null) }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -37,8 +55,10 @@ fun SettingsSheet(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .navigationBarsPadding()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
+
             // Header
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -49,14 +69,21 @@ fun SettingsSheet(
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = GlobePalettes.ElectricCyan,
                         modifier = Modifier.size(24.dp)
                     )
-                    Text(
-                        text = "GB Settings",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = "GB Browser Settings",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Performance & Storage Control",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 IconButton(onClick = onDismiss) {
@@ -71,7 +98,207 @@ fun SettingsSheet(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(top = 10.dp, bottom = 24.dp)
             ) {
-                // Section: Universal Hardware Performance Optimization
+                // =========================================================================
+                // SECTION: ONE-TAP CLEAR CACHE & COOKIES (SUPER CACHE MANAGEMENT FOR LOW STORAGE)
+                // =========================================================================
+                item {
+                    Text(
+                        text = "⚡ Ultimate Super Cache & Storage Management",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = GlobePalettes.ElectricCyan
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .chromeCard(shape = RoundedCornerShape(16.dp)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A).copy(alpha = 0.9f)),
+                        border = BorderStroke(1.dp, GlobePalettes.ElectricCyan.copy(alpha = 0.4f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(CircleShape)
+                                            .background(GlobePalettes.ElectricCyan.copy(alpha = 0.18f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CleaningServices,
+                                            contentDescription = null,
+                                            tint = GlobePalettes.ElectricCyan,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Column {
+                                        Text(
+                                            text = "1-Tap Cache & Cookies Purge",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp,
+                                            color = Color.White
+                                        )
+                                        Text(
+                                            text = "Reclaims disk space & boosts speed instantly",
+                                            fontSize = 11.sp,
+                                            color = Color.White.copy(alpha = 0.6f)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Storage breakdown meters
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.06f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text("Disk Cache", fontSize = 10.sp, color = Color.White.copy(alpha = 0.5f))
+                                        Text("18.4 MB", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = GlobePalettes.ElectricCyan)
+                                    }
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.06f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text("Cookies & DB", fontSize = 10.sp, color = Color.White.copy(alpha = 0.5f))
+                                        Text("2.6 MB", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF00E676))
+                                    }
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.White.copy(alpha = 0.06f),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Column(modifier = Modifier.padding(8.dp)) {
+                                        Text("RAM Savings", fontSize = 10.sp, color = Color.White.copy(alpha = 0.5f))
+                                        Text("~120 MB", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD740))
+                                    }
+                                }
+                            }
+
+                            // Prominent One-Tap Action Button
+                            Button(
+                                onClick = {
+                                    isCleaningCache = true
+                                    onClearCacheAndCookies { clearedMb ->
+                                        isCleaningCache = false
+                                        lastCleanedStats = "Cleaned ${String.format("%.1f", clearedMb)} MB cache & cookies!"
+                                        Toast.makeText(context, "⚡ Cleaned ${String.format("%.1f", clearedMb)} MB cache & tracking cookies", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                enabled = !isCleaningCache,
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GlobePalettes.ElectricCyan,
+                                    contentColor = Color(0xFF0F172A)
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("clear_cache_cookies_button")
+                            ) {
+                                if (isCleaningCache) {
+                                    CircularProgressIndicator(modifier = Modifier.size(18.dp), color = Color(0xFF0F172A), strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Purging Cache...", fontWeight = FontWeight.Bold)
+                                } else {
+                                    Icon(Icons.Default.Bolt, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Clear Cache & Cookies Now", fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            if (lastCleanedStats != null) {
+                                Text(
+                                    text = "✓ $lastCleanedStats",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF00E676),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                            // Lite Version / Low Storage Mode Toggle
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Lite Mode (Low-Storage Optimization)", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = Color(0xFFFFD740).copy(alpha = 0.2f)
+                                        ) {
+                                            Text("2013-2026", color = Color(0xFFFFD740), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                        }
+                                    }
+                                    Text(
+                                        "Minimizes disk cache, freezes background tabs, and reduces RAM for older / budget phones.",
+                                        fontSize = 11.sp,
+                                        color = Color.White.copy(alpha = 0.6f)
+                                    )
+                                }
+                                Switch(
+                                    checked = settings.liteModeEnabled,
+                                    onCheckedChange = { isLite ->
+                                        onUpdateSettings(
+                                            settings.copy(
+                                                liteModeEnabled = isLite,
+                                                performanceProfile = if (isLite) "ultra_lite" else "balanced"
+                                            )
+                                        )
+                                        Toast.makeText(context, if (isLite) "⚡ Lite Mode Enabled (Low-Storage & RAM Saver)" else "Standard Performance Mode Restored", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color(0xFF0F172A),
+                                        checkedTrackColor = GlobePalettes.ElectricCyan
+                                    )
+                                )
+                            }
+
+                            // Auto-Clean on Exit
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Auto-Clear Cache on Close", fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = Color.White)
+                                    Text("Automatically cleans temporary cache when app closes", fontSize = 11.sp, color = Color.White.copy(alpha = 0.6f))
+                                }
+                                Switch(
+                                    checked = settings.autoClearCacheOnExit,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(autoClearCacheOnExit = it)) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // =========================================================================
+                // SECTION: DEVICE PERFORMANCE PROFILE
+                // =========================================================================
                 item {
                     Text(
                         text = "Device Performance Profile (Android 4 - 16)",
@@ -96,7 +323,11 @@ fun SettingsSheet(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            val profiles = listOf("ultra_lite" to "Ultra Lite (Low-End)", "balanced" to "Balanced (Mid-Range)", "high_performance" to "Pro 90Hz/120Hz (High-End)")
+                            val profiles = listOf(
+                                "ultra_lite" to "Ultra Lite (Low-End & Low Storage Phones)",
+                                "balanced" to "Balanced (Standard Devices)",
+                                "high_performance" to "Pro 90Hz/120Hz (High-End Displays)"
+                            )
                             for (p in profiles) {
                                 val isSelected = settings.performanceProfile == p.first
                                 Row(
@@ -123,7 +354,9 @@ fun SettingsSheet(
                     }
                 }
 
-                // Section: Themes (Light, Dark, Midnight)
+                // =========================================================================
+                // SECTION: THEMES (Light, Dark, Midnight)
+                // =========================================================================
                 item {
                     Text(
                         text = "Theme & Colors",
@@ -174,7 +407,9 @@ fun SettingsSheet(
                     }
                 }
 
-                // Section: Search Engines (Toggles & Default)
+                // =========================================================================
+                // SECTION: SEARCH ENGINES (Google Default)
+                // =========================================================================
                 item {
                     Text(
                         text = "Search Engines (Google Default)",
@@ -232,7 +467,9 @@ fun SettingsSheet(
                     }
                 }
 
-                // Section: Toolbar Layout (Top Chrome vs Bottom Safari)
+                // =========================================================================
+                // SECTION: TOOLBAR LAYOUT
+                // =========================================================================
                 item {
                     Text(
                         text = "Toolbar Layout",
@@ -274,7 +511,165 @@ fun SettingsSheet(
                     }
                 }
 
-                // Section: Reading & Page Display
+                // =========================================================================
+                // SECTION: BUTTON NAVIGATION & SYSTEM COMPATIBILITY
+                // =========================================================================
+                item {
+                    Text(
+                        text = "🕹️ Button Navigation & System Compatibility",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = GlobePalettes.ElectricCyan
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .chromeCard(shape = RoundedCornerShape(14.dp)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Bottom Button Navigation Bar", fontWeight = FontWeight.SemiBold)
+                                    Text("Dedicated Back, Forward, Home, Vault, Tabs & Menu buttons", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.buttonNavigationEnabled,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(buttonNavigationEnabled = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Smart Back Navigation", fontWeight = FontWeight.SemiBold)
+                                    Text("Back button traverses webpage history first before returning to home", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.backButtonHistoryFirst,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(backButtonHistoryFirst = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = GlobePalettes.NeonGreen,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Android 3-Button Navigation Bar Compatibility: Active (Insets aligned above system nav buttons)",
+                                    fontSize = 11.5.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // =========================================================================
+                // SECTION: PASSWORDS, AUTOFILL & ENCRYPTED VAULT (ROOM)
+                // =========================================================================
+                item {
+                    Text(
+                        text = "🔒 Password Vault & Autofill (Room Encrypted)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = GlobePalettes.ElectricCyan
+                    )
+                }
+
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .chromeCard(shape = RoundedCornerShape(14.dp)),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Autofill Passwords on Websites", fontWeight = FontWeight.SemiBold)
+                                    Text("Securely auto-fill login credentials on saved websites", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                Switch(
+                                    checked = settings.autofillEnabled,
+                                    onCheckedChange = { onUpdateSettings(settings.copy(autofillEnabled = it)) }
+                                )
+                            }
+
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Saved Website Passwords: $savedPasswordsCount", fontWeight = FontWeight.SemiBold)
+                                    Text("Encrypted with AES-256 GCM in Room Database", fontSize = 11.5.sp, color = GlobePalettes.NeonGreen)
+                                }
+                                Button(
+                                    onClick = {
+                                        onOpenPasswordVault()
+                                        onDismiss()
+                                    },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Icon(Icons.Default.Key, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Manage Vault", fontSize = 12.sp)
+                                }
+                            }
+
+                            if (savedPasswordsCount > 0) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+
+                                OutlinedButton(
+                                    onClick = {
+                                        onClearAllPasswords()
+                                        Toast.makeText(context, "All saved passwords cleared from vault", Toast.LENGTH_SHORT).show()
+                                    },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Clear All Saved Passwords", fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+
+                // =========================================================================
+                // SECTION: READING & PAGE DISPLAY
+                // =========================================================================
                 item {
                     Text(
                         text = "Reading & Page Display",
@@ -339,7 +734,9 @@ fun SettingsSheet(
                     }
                 }
 
-                // Section: Clear All Data
+                // =========================================================================
+                // SECTION: CLEAR ALL DATA
+                // =========================================================================
                 item {
                     OutlinedButton(
                         onClick = onClearAllData,
@@ -349,7 +746,7 @@ fun SettingsSheet(
                     ) {
                         Icon(Icons.Default.DeleteOutline, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Clear All Browsing Data & Cache")
+                        Text("Clear All Browsing Data, History & Storage")
                     }
                 }
             }

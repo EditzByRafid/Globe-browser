@@ -21,8 +21,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.model.BrowserSettings
 import com.example.model.ExtensionItem
+import com.example.model.SavedCredential
 import com.example.model.TabItem
+import com.example.ui.theme.GlobePalettes
+import com.example.ui.theme.chromeCard
 import java.io.ByteArrayInputStream
+import android.widget.Toast
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 
 private val AD_TRACKER_DOMAINS = setOf(
     "doubleclick.net", "google-analytics.com", "adservice.google.com",
@@ -38,17 +45,31 @@ fun WebViewContainer(
     tab: TabItem,
     browserSettings: BrowserSettings,
     activeExtensions: List<ExtensionItem>,
+    matchingCredentials: List<SavedCredential> = emptyList(),
     onUrlChange: (String) -> Unit,
     onTitleChange: (String) -> Unit,
     onLoadingChange: (Boolean, Int) -> Unit,
     onNavigationStateChange: (Boolean, Boolean) -> Unit,
     onTrackerBlocked: (String, String) -> Unit,
     onWebViewCreated: (WebView) -> Unit,
+    onOpenPasswordManager: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var loadError by remember(tab.url) { mutableStateOf<String?>(null) }
     var webViewInstance by remember { mutableStateOf<WebView?>(null) }
+    var dismissedAutofillDomain by remember(tab.url) { mutableStateOf<String?>(null) }
+
+    val currentDomain = remember(tab.url) {
+        tab.url.removePrefix("https://").removePrefix("http://").removePrefix("www.")
+            .split("/").firstOrNull()?.split(":")?.firstOrNull()?.lowercase() ?: ""
+    }
+
+    val activeAutofillCred = remember(matchingCredentials, dismissedAutofillDomain, currentDomain) {
+        if (dismissedAutofillDomain == currentDomain) null
+        else matchingCredentials.firstOrNull()
+    }
+
 
     Box(modifier = modifier.fillMaxSize()) {
         if (tab.url.startsWith("globe://") || tab.url.isBlank()) {
@@ -225,5 +246,116 @@ fun WebViewContainer(
                 modifier = Modifier.fillMaxSize()
             )
         }
+
+        // Floating Password Autofill Suggestion Bar
+        if (browserSettings.autofillEnabled && activeAutofillCred != null) {
+            Card(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .chromeCard(shape = RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f)
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(GlobePalettes.ElectricCyan.copy(alpha = 0.16f), RoundedCornerShape(8.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Key,
+                                contentDescription = null,
+                                tint = GlobePalettes.ElectricCyan,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        Column {
+                            Text(
+                                text = "Autofill for ${activeAutofillCred.domain}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                text = "${activeAutofillCred.username}  ••••••••",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                val user = activeAutofillCred.username.replace("'", "\\'")
+                                val pass = (activeAutofillCred.decryptedPassword ?: "").replace("'", "\\'")
+                                val js = """
+                                    (function() {
+                                        var u = '$user';
+                                        var p = '$pass';
+                                        var userInputs = document.querySelectorAll('input[type="text"], input[type="email"], input[name*="user"], input[name*="email"], input[name*="login"], input[id*="user"], input[id*="email"], input[id*="login"]');
+                                        if (userInputs.length > 0) {
+                                            userInputs[0].focus();
+                                            userInputs[0].value = u;
+                                            userInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+                                            userInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+                                        }
+                                        var passInputs = document.querySelectorAll('input[type="password"]');
+                                        if (passInputs.length > 0) {
+                                            passInputs[0].focus();
+                                            passInputs[0].value = p;
+                                            passInputs[0].dispatchEvent(new Event('input', { bubbles: true }));
+                                            passInputs[0].dispatchEvent(new Event('change', { bubbles: true }));
+                                        }
+                                    })();
+                                """.trimIndent()
+                                webViewInstance?.evaluateJavascript(js, null)
+                                Toast.makeText(context, "Autofilled credentials for ${activeAutofillCred.domain}", Toast.LENGTH_SHORT).show()
+                                dismissedAutofillDomain = currentDomain
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.height(34.dp)
+                        ) {
+                            Text("Fill", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        IconButton(
+                            onClick = { dismissedAutofillDomain = currentDomain },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+

@@ -2,8 +2,11 @@ package com.example.ui.components
 
 import android.widget.Toast
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -25,8 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.*
+import com.example.ui.theme.GlobePalettes
 import com.example.ui.theme.chromeCard
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NewTabPage(
     settings: BrowserSettings,
@@ -43,6 +48,7 @@ fun NewTabPage(
     modifier: Modifier = Modifier
 ) {
     var showAddShortcutDialog by remember { mutableStateOf(false) }
+    var shortcutToManage by remember { mutableStateOf<Pair<String, String>?>(null) }
     var newShortcutName by remember { mutableStateOf("") }
     var newShortcutUrl by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -126,6 +132,29 @@ fun NewTabPage(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     modifier = Modifier.padding(top = 2.dp)
                 )
+
+                if (settings.liteModeEnabled) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = GlobePalettes.ElectricCyan.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, GlobePalettes.ElectricCyan.copy(alpha = 0.4f))
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text("⚡", fontSize = 12.sp)
+                            Text(
+                                text = "Lite Version • Super Cache Optimizer Active",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GlobePalettes.ElectricCyan
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -300,9 +329,14 @@ fun NewTabPage(
                                             horizontalAlignment = Alignment.CenterHorizontally,
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(12.dp))
-                                                .clickable {
-                                                    if (link.first == "Maps") onOpenMaps() else onNavigate(link.second)
-                                                }
+                                                .combinedClickable(
+                                                    onClick = {
+                                                        if (link.first == "Maps") onOpenMaps() else onNavigate(link.second)
+                                                    },
+                                                    onLongClick = {
+                                                        shortcutToManage = link
+                                                    }
+                                                )
                                                 .padding(6.dp)
                                         ) {
                                             BrandVectorLogo(
@@ -571,4 +605,59 @@ fun NewTabPage(
             }
         )
     }
+
+    // Shortcut Manage & Delete Dialog
+    shortcutToManage?.let { shortcut ->
+        val isDefault = defaultShortcuts.any { it.first == shortcut.first }
+        AlertDialog(
+            onDismissRequest = { shortcutToManage = null },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BrandVectorLogo(name = shortcut.first, size = 28.dp)
+                    Text(shortcut.first, fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("URL: ${shortcut.second}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (isDefault) {
+                        Text("This is a built-in speed dial tile.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    } else {
+                        Text("Manage or remove this shortcut from your home screen.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+                    }
+                }
+            },
+            confirmButton = {
+                if (!isDefault) {
+                    Button(
+                        onClick = {
+                            customShortcuts = customShortcuts.filter { it.first != shortcut.first }
+                            shortcutToManage = null
+                            Toast.makeText(context, "Removed ${shortcut.first}", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Remove Shortcut")
+                    }
+                } else {
+                    Button(
+                        onClick = {
+                            onNavigate(shortcut.second)
+                            shortcutToManage = null
+                        },
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("Open")
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { shortcutToManage = null }) {
+                    Text("Close")
+                }
+            }
+        )
+    }
 }
+

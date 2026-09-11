@@ -29,6 +29,7 @@ fun OmniboxBar(
     tab: TabItem,
     settings: BrowserSettings,
     tabCount: Int,
+    matchingCredentialsCount: Int = 0,
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
     onForward: () -> Unit,
@@ -38,8 +39,10 @@ fun OmniboxBar(
     onOpenSearchOverlay: () -> Unit,
     onOpenLens: () -> Unit,
     onOpenMenu: () -> Unit,
+    onOpenVault: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+
     val isHttps = tab.url.startsWith("https://")
     val isGlobe = tab.url.startsWith("globe://") || tab.url.isBlank()
 
@@ -156,7 +159,25 @@ fun OmniboxBar(
                 }
             }
 
+            // Quick Password Vault button if current domain has saved credentials
+            if (matchingCredentialsCount > 0 && onOpenVault != null) {
+                IconButton(
+                    onClick = onOpenVault,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .testTag("omnibox_vault_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Key,
+                        contentDescription = "Saved Passwords",
+                        tint = GlobePalettes.NeonGreen,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+            }
+
             // Tabs Switcher Counter Button
+
             Box(
                 modifier = Modifier
                     .size(36.dp)

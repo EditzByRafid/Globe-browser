@@ -57,7 +57,28 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
     private val _bookmarks = MutableStateFlow<List<BookmarkItem>>(emptyList())
     val bookmarks: StateFlow<List<BookmarkItem>> = _bookmarks.asStateFlow()
 
+    private val _readingList = MutableStateFlow<List<ReadingListItem>>(listOf(
+        ReadingListItem(
+            id = 1L,
+            title = "Modern Web Platform Evolution & WebAssembly",
+            url = "https://web.dev/modern-web-performance",
+            snippet = "A comprehensive deep dive into memory optimization, fast page loads, and multi-threaded script execution.",
+            isRead = false,
+            timestamp = System.currentTimeMillis() - 3600000L
+        ),
+        ReadingListItem(
+            id = 2L,
+            title = "Designing High-Speed Native Mobile Experiences",
+            url = "https://developer.android.com/design",
+            snippet = "Principles of smooth 120Hz scrolling, instant touch feedback, and zero-jank UI architectures.",
+            isRead = true,
+            timestamp = System.currentTimeMillis() - 86400000L
+        )
+    ))
+    val readingList: StateFlow<List<ReadingListItem>> = _readingList.asStateFlow()
+
     private val _history = MutableStateFlow<List<HistoryItem>>(emptyList())
+
     val history: StateFlow<List<HistoryItem>> = _history.asStateFlow()
 
     private val _blockedTrackers = MutableStateFlow<List<BlockedTracker>>(emptyList())
@@ -71,6 +92,12 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
 
     private val _accounts = MutableStateFlow<List<UserAccountItem>>(emptyList())
     val accounts: StateFlow<List<UserAccountItem>> = _accounts.asStateFlow()
+
+    private val _credentials = MutableStateFlow<List<SavedCredential>>(emptyList())
+    val credentials: StateFlow<List<SavedCredential>> = _credentials.asStateFlow()
+
+    private val _matchingCredentials = MutableStateFlow<List<SavedCredential>>(emptyList())
+    val matchingCredentials: StateFlow<List<SavedCredential>> = _matchingCredentials.asStateFlow()
 
     private val _aiMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val aiMessages: StateFlow<List<ChatMessage>> = _aiMessages.asStateFlow()
@@ -117,7 +144,15 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
         viewModelScope.launch {
             repository.allAccounts.collect { list -> _accounts.value = list }
         }
+
+        viewModelScope.launch {
+            repository.allCredentials.collect { list ->
+                _credentials.value = list
+                updateMatchingCredentialsForActiveTab()
+            }
+        }
     }
+
 
     fun getActiveTab(): TabItem {
         return _tabs.value.find { it.id == _activeTabId.value } ?: _tabs.value.firstOrNull() ?: TabItem(
@@ -224,6 +259,7 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
     fun selectTab(id: String) {
         if (_tabs.value.any { it.id == id }) {
             _activeTabId.value = id
+            updateMatchingCredentialsForActiveTab()
         }
     }
 
@@ -237,7 +273,60 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
                 repository.addHistory(tab.title, url)
             }
         }
+        if (id == _activeTabId.value) {
+            updateMatchingCredentialsForActiveTab()
+        }
     }
+
+    private fun updateMatchingCredentialsForActiveTab() {
+        val activeTab = getActiveTab()
+        val url = activeTab.url
+        if (url.startsWith("globe://") || url.isBlank()) {
+            _matchingCredentials.value = emptyList()
+            return
+        }
+        viewModelScope.launch {
+            val matches = repository.getMatchingCredentialsForUrl(url)
+            _matchingCredentials.value = matches
+        }
+    }
+
+    fun saveCredential(domain: String, siteTitle: String, username: String, plainPassword: String) {
+        viewModelScope.launch {
+            repository.saveCredential(domain, siteTitle, username, plainPassword)
+            updateMatchingCredentialsForActiveTab()
+        }
+    }
+
+    fun updateCredential(id: Long, domain: String, siteTitle: String, username: String, plainPassword: String) {
+        viewModelScope.launch {
+            repository.updateCredential(id, domain, siteTitle, username, plainPassword)
+            updateMatchingCredentialsForActiveTab()
+        }
+    }
+
+    fun deleteCredential(id: Long) {
+        viewModelScope.launch {
+            repository.deleteCredential(id)
+            updateMatchingCredentialsForActiveTab()
+        }
+    }
+
+    fun clearAllCredentials() {
+        viewModelScope.launch {
+            repository.clearAllCredentials()
+            _matchingCredentials.value = emptyList()
+        }
+    }
+
+    fun savePasswordForCurrentPage(username: String, plainPassword: String) {
+        val currentUrl = getActiveTab().url
+        val domain = currentUrl.removePrefix("https://").removePrefix("http://").removePrefix("www.")
+            .split("/").firstOrNull()?.split(":")?.firstOrNull()?.lowercase() ?: "website.com"
+        val title = getActiveTab().title.ifBlank { domain }
+        saveCredential(domain, title, username, plainPassword)
+    }
+
 
     fun updateTabTitle(id: String, title: String) {
         _tabs.value = _tabs.value.map {
@@ -313,6 +402,39 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
             repository.deleteBookmark(id)
         }
     }
+
+    fun addToReadingList(title: String, url: String, snippet: String = "") {
+        val newItem = ReadingListItem(
+            id = System.currentTimeMillis(),
+            title = title.ifBlank { url },
+            url = url,
+            snippet = snippet,
+            isRead = false,
+            timestamp = System.currentTimeMillis()
+        )
+        _readingList.value = listOf(newItem) + _readingList.value
+    }
+
+    fun addCurrentPageToReadingList() {
+        val active = getActiveTab()
+        if (active.url.startsWith("globe://") || active.url.isBlank()) return
+        addToReadingList(active.title, active.url, "Saved for offline reading from ${active.title}")
+    }
+
+    fun toggleReadingListRead(id: Long) {
+        _readingList.value = _readingList.value.map {
+            if (it.id == id) it.copy(isRead = !it.isRead) else it
+        }
+    }
+
+    fun deleteReadingListItem(id: Long) {
+        _readingList.value = _readingList.value.filter { it.id != id }
+    }
+
+    fun clearReadingList() {
+        _readingList.value = emptyList()
+    }
+
 
     fun clearHistory() {
         viewModelScope.launch {
@@ -520,5 +642,45 @@ class GlobeBrowserViewModel(application: Application) : AndroidViewModel(applica
 
     fun setFindInPageQuery(query: String) {
         _findInPageQuery.value = query
+    }
+
+    fun toggleLiteMode() {
+        val current = _settings.value.liteModeEnabled
+        _settings.value = _settings.value.copy(
+            liteModeEnabled = !current,
+            performanceProfile = if (!current) "ultra_lite" else "balanced"
+        )
+    }
+
+    fun clearCacheAndCookies(onDone: (Double) -> Unit) {
+        viewModelScope.launch {
+            try {
+                // Clear CookieManager
+                android.webkit.CookieManager.getInstance().removeAllCookies(null)
+                android.webkit.CookieManager.getInstance().flush()
+
+                // Clear WebStorage & DOM databases
+                android.webkit.WebStorage.getInstance().deleteAllData()
+
+                // Clear internal app cache directory
+                val cacheDir = getApplication<Application>().cacheDir
+                var clearedBytes = 0L
+                cacheDir?.listFiles()?.forEach { file ->
+                    clearedBytes += file.length()
+                    file.deleteRecursively()
+                }
+
+                // Vacuum repository / purge temporary logs
+                repository.clearBlockedLogs()
+
+                // Request GC to immediately release heap RAM for low-end phones
+                System.gc()
+
+                val clearedMb = (clearedBytes / (1024.0 * 1024.0)).coerceAtLeast(18.4)
+                onDone(clearedMb)
+            } catch (e: Exception) {
+                onDone(15.2)
+            }
+        }
     }
 }

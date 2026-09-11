@@ -261,39 +261,41 @@ fun GitHubBrandLogo(size: Dp = 32.dp) {
     Box(
         modifier = Modifier
             .size(size)
-            .background(Color(0xFF181717)),
+            .background(Color(0xFF24292F)),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.size(size * 0.7f)) {
+        Canvas(modifier = Modifier.size(size * 0.68f)) {
             val w = this.size.width
             val h = this.size.height
+            val scaleX = w / 100f
+            val scaleY = h / 100f
             val path = Path().apply {
-                moveTo(w * 0.5f, 0f)
-                cubicTo(w * 0.22f, 0f, 0f, h * 0.22f, 0f, h * 0.5f)
-                cubicTo(0f, h * 0.72f, w * 0.14f, h * 0.91f, w * 0.34f, h * 0.98f)
-                cubicTo(w * 0.36f, h * 0.98f, w * 0.37f, h * 0.97f, w * 0.37f, h * 0.95f)
-                lineTo(w * 0.37f, h * 0.84f)
-                cubicTo(w * 0.23f, h * 0.87f, w * 0.20f, h * 0.78f, w * 0.20f, h * 0.78f)
-                cubicTo(w * 0.18f, h * 0.72f, w * 0.15f, h * 0.70f, w * 0.15f, h * 0.70f)
-                cubicTo(w * 0.10f, h * 0.67f, w * 0.15f, h * 0.67f, w * 0.15f, h * 0.67f)
-                cubicTo(w * 0.20f, h * 0.68f, w * 0.23f, h * 0.73f, w * 0.23f, h * 0.73f)
-                cubicTo(w * 0.28f, h * 0.81f, w * 0.35f, h * 0.79f, w * 0.38f, h * 0.77f)
-                cubicTo(w * 0.39f, h * 0.73f, w * 0.40f, h * 0.70f, w * 0.42f, h * 0.68f)
-                cubicTo(w * 0.31f, h * 0.67f, w * 0.19f, h * 0.62f, w * 0.19f, h * 0.43f)
-                cubicTo(w * 0.19f, h * 0.37f, w * 0.21f, h * 0.33f, w * 0.24f, h * 0.30f)
-                cubicTo(w * 0.24f, h * 0.28f, w * 0.22f, h * 0.23f, w * 0.25f, h * 0.16f)
-                cubicTo(w * 0.25f, h * 0.16f, w * 0.30f, h * 0.14f, w * 0.41f, h * 0.22f)
-                cubicTo(w * 0.46f, h * 0.20f, w * 0.51f, h * 0.20f, w * 0.55f, h * 0.20f)
-                cubicTo(w * 0.60f, h * 0.20f, w * 0.65f, h * 0.20f, w * 0.70f, h * 0.22f)
-                cubicTo(w * 0.81f, h * 0.14f, w * 0.86f, h * 0.16f, w * 0.86f, h * 0.16f)
-                cubicTo(w * 0.89f, h * 0.23f, w * 0.87f, h * 0.28f, w * 0.87f, h * 0.30f)
-                cubicTo(w * 0.90f, h * 0.33f, w * 0.92f, h * 0.37f, w * 0.92f, h * 0.43f)
-                cubicTo(w * 0.92f, h * 0.62f, w * 0.80f, h * 0.67f, w * 0.69f, h * 0.68f)
-                cubicTo(w * 0.71f, h * 0.70f, w * 0.73f, h * 0.74f, w * 0.73f, h * 0.80f)
-                lineTo(w * 0.73f, h * 0.95f)
-                cubicTo(w * 0.73f, h * 0.97f, w * 0.74f, h * 0.98f, w * 0.77f, h * 0.98f)
-                cubicTo(w * 0.97f, h * 0.91f, w * 1.11f, h * 0.72f, w * 1.11f, h * 0.5f)
-                cubicTo(w * 1.11f, h * 0.22f, w * 0.88f, 0f, w * 0.5f, 0f)
+                moveTo(50f * scaleX, 0f * scaleY)
+                cubicTo(22.4f * scaleX, 0f, 0f, 22.4f * scaleY, 0f, 50f * scaleY)
+                cubicTo(0f, 72.1f * scaleY, 14.3f * scaleX, 90.8f * scaleY, 34.2f * scaleX, 97.4f * scaleY)
+                cubicTo(36.7f * scaleX, 97.9f * scaleY, 37.6f * scaleX, 96.3f * scaleY, 37.6f * scaleX, 95f * scaleY)
+                lineTo(37.6f * scaleX, 86.4f * scaleY)
+                cubicTo(23.7f * scaleX, 89.4f * scaleY, 20.8f * scaleX, 79.7f * scaleY, 20.8f * scaleX, 79.7f * scaleY)
+                cubicTo(18.5f * scaleX, 73.9f * scaleY, 15.3f * scaleX, 72.3f * scaleY, 15.3f * scaleX, 72.3f * scaleY)
+                cubicTo(10.8f * scaleX, 69.2f * scaleY, 15.6f * scaleX, 69.3f * scaleY, 15.6f * scaleX, 69.3f * scaleY)
+                cubicTo(20.6f * scaleX, 69.6f * scaleY, 23.2f * scaleX, 74.4f * scaleY, 23.2f * scaleX, 74.4f * scaleY)
+                cubicTo(27.5f * scaleX, 81.8f * scaleY, 34.6f * scaleX, 79.7f * scaleY, 37.4f * scaleX, 78.4f * scaleY)
+                cubicTo(37.8f * scaleX, 75.3f * scaleY, 39.1f * scaleX, 73.1f * scaleY, 40.5f * scaleX, 71.9f * scaleY)
+                cubicTo(29.4f * scaleX, 70.6f * scaleY, 17.8f * scaleX, 66.3f * scaleY, 17.8f * scaleX, 47.1f * scaleY)
+                cubicTo(17.8f * scaleX, 41.6f * scaleY, 19.8f * scaleX, 37.1f * scaleY, 23f * scaleX, 33.6f * scaleY)
+                cubicTo(22.5f * scaleX, 32.3f * scaleY, 20.8f * scaleX, 27.2f * scaleY, 23.5f * scaleX, 20.3f * scaleY)
+                cubicTo(23.5f * scaleX, 20.3f * scaleY, 27.7f * scaleX, 19f * scaleY, 37.3f * scaleX, 25.5f * scaleY)
+                cubicTo(41.3f * scaleX, 24.4f * scaleY, 45.6f * scaleX, 23.8f * scaleY, 50f * scaleX, 23.8f * scaleY)
+                cubicTo(54.4f * scaleX, 23.8f * scaleY, 58.7f * scaleX, 24.4f * scaleY, 62.7f * scaleX, 25.5f * scaleY)
+                cubicTo(72.3f * scaleX, 19f * scaleY, 76.5f * scaleX, 20.3f * scaleY, 76.5f * scaleX, 20.3f * scaleY)
+                cubicTo(79.2f * scaleX, 27.2f * scaleY, 77.5f * scaleX, 32.3f * scaleY, 77f * scaleX, 33.6f * scaleY)
+                cubicTo(80.2f * scaleX, 37.1f * scaleY, 82.2f * scaleX, 41.6f * scaleY, 82.2f * scaleX, 47.1f * scaleY)
+                cubicTo(82.2f * scaleX, 66.4f * scaleY, 70.5f * scaleX, 70.6f * scaleY, 59.4f * scaleX, 71.8f * scaleY)
+                cubicTo(61.2f * scaleX, 73.4f * scaleY, 62.8f * scaleX, 76.5f * scaleY, 62.8f * scaleX, 81.2f * scaleY)
+                lineTo(62.8f * scaleX, 95f * scaleY)
+                cubicTo(62.8f * scaleX, 96.3f * scaleY, 63.7f * scaleX, 97.9f * scaleY, 66.2f * scaleX, 97.4f * scaleY)
+                cubicTo(86.1f * scaleX, 90.8f * scaleY, 100f * scaleX, 72.1f * scaleY, 100f * scaleX, 50f * scaleY)
+                cubicTo(100f * scaleX, 22.4f * scaleY, 77.6f * scaleX, 0f, 50f * scaleX, 0f)
                 close()
             }
             drawPath(path, Color.White)

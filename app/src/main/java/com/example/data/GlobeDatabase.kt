@@ -183,6 +183,45 @@ interface UserAccountDao {
     suspend fun getCurrentAccount(): UserAccountEntity?
 }
 
+@Entity(tableName = "credentials")
+data class CredentialEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val domain: String,
+    val siteTitle: String,
+    val username: String,
+    val encryptedPassword: String,
+    val iv: String,
+    val createdAt: Long = System.currentTimeMillis(),
+    val lastUsedAt: Long = System.currentTimeMillis()
+)
+
+@Dao
+interface CredentialDao {
+    @Query("SELECT * FROM credentials ORDER BY lastUsedAt DESC, id DESC")
+    fun getAllCredentials(): Flow<List<CredentialEntity>>
+
+    @Query("SELECT * FROM credentials WHERE domain LIKE '%' || :domainQuery || '%' OR siteTitle LIKE '%' || :domainQuery || '%'")
+    fun getCredentialsForDomain(domainQuery: String): Flow<List<CredentialEntity>>
+
+    @Query("SELECT * FROM credentials WHERE domain = :domain OR domain LIKE '%' || :domain OR :domain LIKE '%' || domain")
+    suspend fun getMatchingCredentials(domain: String): List<CredentialEntity>
+
+    @Query("SELECT COUNT(*) FROM credentials")
+    suspend fun getCredentialCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertCredential(credential: CredentialEntity): Long
+
+    @Update
+    suspend fun updateCredential(credential: CredentialEntity)
+
+    @Query("DELETE FROM credentials WHERE id = :id")
+    suspend fun deleteCredential(id: Long)
+
+    @Query("DELETE FROM credentials")
+    suspend fun deleteAllCredentials()
+}
+
 @Database(
     entities = [
         TabEntity::class,
@@ -190,9 +229,10 @@ interface UserAccountDao {
         HistoryEntity::class,
         BlockedTrackerEntity::class,
         ExtensionEntity::class,
-        UserAccountEntity::class
+        UserAccountEntity::class,
+        CredentialEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class GlobeDatabase : RoomDatabase() {
@@ -202,6 +242,7 @@ abstract class GlobeDatabase : RoomDatabase() {
     abstract fun blockedTrackerDao(): BlockedTrackerDao
     abstract fun extensionDao(): ExtensionDao
     abstract fun userAccountDao(): UserAccountDao
+    abstract fun credentialDao(): CredentialDao
 
     companion object {
         @Volatile
@@ -213,10 +254,13 @@ abstract class GlobeDatabase : RoomDatabase() {
                     context.applicationContext,
                     GlobeDatabase::class.java,
                     "globe_browser.db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
         }
     }
 }
+

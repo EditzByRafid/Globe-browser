@@ -2,10 +2,12 @@ package com.example.data
 
 import android.content.Context
 import com.example.model.*
+import com.example.util.CredentialCrypto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+
 
 class BrowserRepository(private val database: GlobeDatabase) {
 
@@ -85,6 +87,24 @@ class BrowserRepository(private val database: GlobeDatabase) {
             )
         }
     }
+
+    val allCredentials: Flow<List<SavedCredential>> = database.credentialDao().getAllCredentials().map { list ->
+        list.map { entity ->
+            val plain = CredentialCrypto.decrypt(entity.encryptedPassword, entity.iv)
+            SavedCredential(
+                id = entity.id,
+                domain = entity.domain,
+                siteTitle = entity.siteTitle,
+                username = entity.username,
+                encryptedPassword = entity.encryptedPassword,
+                iv = entity.iv,
+                decryptedPassword = plain,
+                createdAt = entity.createdAt,
+                lastUsedAt = entity.lastUsedAt
+            )
+        }
+    }
+
 
     suspend fun saveTab(tab: TabItem, position: Int) = withContext(Dispatchers.IO) {
         database.tabDao().insertTab(
@@ -204,6 +224,73 @@ class BrowserRepository(private val database: GlobeDatabase) {
         }
     }
 
+    private fun normalizeDomain(raw: String): String {
+        val clean = raw.trim().removePrefix("https://").removePrefix("http://").removePrefix("www.")
+        return clean.split("/").firstOrNull()?.split(":")?.firstOrNull()?.lowercase() ?: raw.trim().lowercase()
+    }
+
+    suspend fun saveCredential(domain: String, siteTitle: String, username: String, plainPassword: String): Long = withContext(Dispatchers.IO) {
+        val cleanDomain = normalizeDomain(domain)
+        val title = siteTitle.ifBlank { cleanDomain }
+        val encrypted = CredentialCrypto.encrypt(plainPassword)
+        database.credentialDao().insertCredential(
+            CredentialEntity(
+                domain = cleanDomain,
+                siteTitle = title,
+                username = username.trim(),
+                encryptedPassword = encrypted.ciphertext,
+                iv = encrypted.iv,
+                createdAt = System.currentTimeMillis(),
+                lastUsedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun updateCredential(id: Long, domain: String, siteTitle: String, username: String, plainPassword: String) = withContext(Dispatchers.IO) {
+        val cleanDomain = normalizeDomain(domain)
+        val title = siteTitle.ifBlank { cleanDomain }
+        val encrypted = CredentialCrypto.encrypt(plainPassword)
+        database.credentialDao().updateCredential(
+            CredentialEntity(
+                id = id,
+                domain = cleanDomain,
+                siteTitle = title,
+                username = username.trim(),
+                encryptedPassword = encrypted.ciphertext,
+                iv = encrypted.iv,
+                lastUsedAt = System.currentTimeMillis()
+            )
+        )
+    }
+
+    suspend fun deleteCredential(id: Long) = withContext(Dispatchers.IO) {
+        database.credentialDao().deleteCredential(id)
+    }
+
+    suspend fun getMatchingCredentialsForUrl(url: String): List<SavedCredential> = withContext(Dispatchers.IO) {
+        val cleanDomain = normalizeDomain(url)
+        if (cleanDomain.isBlank() || cleanDomain.startsWith("globe")) return@withContext emptyList()
+        val entities = database.credentialDao().getMatchingCredentials(cleanDomain)
+        entities.map { entity ->
+            val plain = CredentialCrypto.decrypt(entity.encryptedPassword, entity.iv)
+            SavedCredential(
+                id = entity.id,
+                domain = entity.domain,
+                siteTitle = entity.siteTitle,
+                username = entity.username,
+                encryptedPassword = entity.encryptedPassword,
+                iv = entity.iv,
+                decryptedPassword = plain,
+                createdAt = entity.createdAt,
+                lastUsedAt = entity.lastUsedAt
+            )
+        }
+    }
+
+    suspend fun clearAllCredentials() = withContext(Dispatchers.IO) {
+        database.credentialDao().deleteAllCredentials()
+    }
+
     suspend fun panicWipe() = withContext(Dispatchers.IO) {
         database.tabDao().deleteAllTabs()
         database.historyDao().clearHistory()
@@ -211,6 +298,29 @@ class BrowserRepository(private val database: GlobeDatabase) {
     }
 
     suspend fun checkAndSeedInitialData() = withContext(Dispatchers.IO) {
+        // Seed starter encrypted credentials if empty
+        val credCount = database.credentialDao().getCredentialCount()
+        if (credCount == 0) {
+            val starterList = listOf(
+                Triple("github.com", "GitHub", "octocat@github.com" to "ghp_securePass2026!"),
+                Triple("google.com", "Google Account", "user@gmail.com" to "AlphaVault99#Secret"),
+                Triple("reddit.com", "Reddit", "GlobeSurfer" to "RedditPass!440")
+            )
+            starterList.forEach { (dom, title, userPass) ->
+                val (user, pass) = userPass
+                val enc = CredentialCrypto.encrypt(pass)
+                database.credentialDao().insertCredential(
+                    CredentialEntity(
+                        domain = dom,
+                        siteTitle = title,
+                        username = user,
+                        encryptedPassword = enc.ciphertext,
+                        iv = enc.iv
+                    )
+                )
+            }
+        }
+
         val existingCount = database.userAccountDao().getAccountCount()
         if (existingCount == 0) {
             // Seed private user account into 700-capacity storage database

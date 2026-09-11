@@ -1,8 +1,10 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -10,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -157,7 +160,94 @@ fun PrivacyDashboardSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
+            // 7-Day Protection & Tracker Interception Report
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .chromeCard(shape = RoundedCornerShape(16.dp)),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "7-Day Interception Report",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = GlobePalettes.ElectricCyan.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "100% On-Device",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = GlobePalettes.ElectricCyan,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Mini Bar Chart of Days
+                    val days = listOf("Mon" to 18, "Tue" to 25, "Wed" to 14, "Thu" to 32, "Fri" to 28, "Sat" to 42, "Today" to (totalBlocked.coerceAtLeast(15)))
+                    val maxVal = days.maxOf { it.second }.toFloat().coerceAtLeast(1f)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(68.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom
+                    ) {
+                        days.forEach { (day, count) ->
+                            val heightFraction = (count / maxVal).coerceIn(0.15f, 1f)
+                            val isToday = day == "Today"
+
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = count.toString(),
+                                    fontSize = 9.sp,
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isToday) GlobePalettes.ElectricCyan else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .width(16.dp)
+                                        .fillMaxHeight(heightFraction)
+                                        .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                                        .background(
+                                            if (isToday) GlobePalettes.ElectricCyan
+                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                                        )
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = day,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isToday) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
             // Blocked Trackers List Header
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,

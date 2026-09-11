@@ -42,6 +42,7 @@ object GlobePalettes {
 
     // Legacy compat
     val ElectricCyan = Color(0xFF8AB4F8)
+    val NeonGreen = Color(0xFF34A853)
     val GlassBorder = Color(0x2EFFFFFF)
     val GxCrimson = Color(0xFFEA4335)
 }
